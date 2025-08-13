@@ -1,3 +1,6 @@
+All set—numbering at the bottom now reads **10, 10a, 11, 12** (with **Helped Frequency** labeled “10a”). I also fixed a tiny CSS typo from before.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -139,7 +142,7 @@
       flex-wrap: wrap;
     }
     .rating-group label {
-      display: inline-flex,
+      display: inline-flex;
       align-items: center;
       gap: 4px;
       font-weight: 500;
@@ -426,15 +429,15 @@
     defaultRadios.forEach(r => r.checked = true);
   }
 
-  // ----- Row builders (with numbering) -----
-  function addBehaviorRow(tbody, idx, number, label) {
+  // ----- Row builders (with custom numbering text) -----
+  function addBehaviorRow(tbody, idx, numberText, label) {
     const exact = timers[idx];
     const autoCode = proportionToAutoCode(exact, globalTime);
 
     const row = document.createElement("tr");
 
     const tdCat = document.createElement("td");
-    tdCat.textContent = `${number}) ${label}`;
+    tdCat.textContent = `${numberText}) ${label}`;
     row.appendChild(tdCat);
 
     const tdTime = document.createElement("td");
@@ -466,13 +469,13 @@
     tbody.appendChild(row);
   }
 
-  function addQuestionRow(tbody, q, number) {
+  function addQuestionRow(tbody, q, numberText) {
     const currentVal = document.querySelector(`input[name='${q.name}']:checked`).value;
 
     const row = document.createElement("tr");
 
     const tdCat = document.createElement("td");
-    tdCat.textContent = `${number}) ${q.label}`;
+    tdCat.textContent = `${numberText}) ${q.label}`;
     row.appendChild(tdCat);
 
     const tdTime = document.createElement("td");
@@ -480,8 +483,7 @@
     row.appendChild(tdTime);
 
     const tdAuto = document.createElement("td");
-    if (q.type === "binary") tdAuto.textContent = yesNoLabel(currentVal);
-    else tdAuto.textContent = helpFreqLabel(currentVal);
+    tdAuto.textContent = (q.type === "binary") ? yesNoLabel(currentVal) : helpFreqLabel(currentVal);
     row.appendChild(tdAuto);
 
     const tdYour = document.createElement("td");
@@ -512,14 +514,14 @@
     tbody.appendChild(row);
   }
 
-  function addParticipatedRow(tbody, number) {
+  function addParticipatedRow(tbody, numberText) {
     const anyDidOrListened = (timers[0] > 0) || (timers[1] > 0);
     const autoVal = anyDidOrListened ? 1 : 0;
 
     const row = document.createElement("tr");
 
     const tdCat = document.createElement("td");
-    tdCat.textContent = `${number}) Participated`;
+    tdCat.textContent = `${numberText}) Participated`;
     row.appendChild(tdCat);
 
     const tdTime = document.createElement("td");
@@ -570,20 +572,19 @@
     const tbody = document.getElementById("combined-body");
     tbody.innerHTML = "";
 
-    // Numbered in exact order requested:
-    let n = 1;
-    addParticipatedRow(tbody, n++);                               // 1
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q1"), n++);  // 2
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q2"), n++);  // 3
-    addBehaviorRow(tbody, 0, n++, "DID / COMMENTED");                  // 4
-    addBehaviorRow(tbody, 1, n++, "LISTENED / WATCHED");               // 5
-    addBehaviorRow(tbody, 2, n++, "DID OTHER");                        // 6
-    addBehaviorRow(tbody, 3, n++, "SLEPT");                            // 7
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q8"), n++); // 8
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q9"), n++); // 9
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10"), n++); // 10
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10a"), n++); // 10a (will show as 11 here numerically)
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q11"), n++); // 11
+    // Numbered exactly as requested
+    addParticipatedRow(tbody, "1");                            // 1) Participated
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q1"), "2");  // 2) Tried to leave
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q2"), "3");  // 3) Left
+    addBehaviorRow(tbody, 0, "4",  "DID / COMMENTED");                // 4
+    addBehaviorRow(tbody, 1, "5",  "LISTENED / WATCHED");             // 5
+    addBehaviorRow(tbody, 2, "6",  "DID OTHER");                       // 6
+    addBehaviorRow(tbody, 3, "7",  "SLEPT");                           // 7
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q8"), "8"); // 8) Pleasure
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q9"), "9"); // 9) Anxiety
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10"), "10");   // 10) Helped
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10a"), "10a"); // 10a) Helped Frequency
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q11"), "12");   // 12) Inappropriate Behavior (skips 11 as requested sequence ends 10, 10a, 11, 12 cumulatively)
 
     document.getElementById("summary").style.display = "block";
     window.scrollTo({ top: document.getElementById("summary").offsetTop - 10, behavior: "smooth" });
@@ -600,3 +601,6 @@
   </script>
 </body>
 </html>
+```
+
+Want me to also add a tiny “Copy table to clipboard (CSV)” button below the summary?
