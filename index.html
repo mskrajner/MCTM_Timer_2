@@ -26,7 +26,7 @@
       flex-direction: column;
       gap: 6px;
     }
-    input[type="text"], input[type="date"], select {
+    input[type="text"], input[type="date"] {
       padding: 8px;
       border-radius: 8px;
       border: 1px solid #ccc;
@@ -156,7 +156,7 @@
 <body>
   <h1>MPES Timer (Version 2025-08-13)</h1>
 
-  <!-- Top controls: Participant ID, Date (auto-filled), Duration select, Global display -->
+  <!-- Top controls: Participant ID, Date (auto-filled), Global display -->
   <div class="top-controls">
     <div class="field">
       <label for="participant-id">Participant ID</label>
@@ -165,16 +165,6 @@
     <div class="field">
       <label for="session-date">Session Date</label>
       <input id="session-date" type="date" />
-    </div>
-    <div class="field">
-      <label for="duration-select">Select Timer Duration</label>
-      <select id="duration-select">
-        <option value="60">1 Minute</option>
-        <option value="120" selected>2 Minutes</option>
-        <option value="180">3 Minutes</option>
-        <option value="240">4 Minutes</option>
-        <option value="300">5 Minutes</option>
-      </select>
     </div>
     <div class="field">
       <label>Global Timer</label>
@@ -206,7 +196,7 @@
     </div>
   </div>
 
-  <!-- Binary/ordinal questions -->
+  <!-- Binary/ordinal questions (original form) -->
   <div class="matrix">
     <table>
       <tr>
@@ -295,8 +285,7 @@
           <td id="info-start"></td>
           <td><strong>End Time</strong></td>
           <td id="info-end"></td>
-          <td><strong>Duration Setting</strong></td>
-          <td id="info-target"></td>
+          <td colspan="2"></td>
         </tr>
       </tbody>
     </table>
@@ -317,6 +306,9 @@
   </div>
 
   <script>
+  // ----- Constants -----
+  const DURATION_SECONDS = 240; // fixed 4 minutes
+
   // ----- State -----
   let timers = [0, 0, 0, 0];
   let intervals = [null, null, null, null];
@@ -330,7 +322,7 @@
 
   const labels = ["DID / COMMENTED", "LISTENED / WATCHED", "DID OTHER", "SLEPT"];
 
-  // Question defs
+  // Question defs (original radios above)
   const questionDefs = [
     { name: "q1",  label: "Tried to Leave",          type: "binary" },
     { name: "q2",  label: "Left",                    type: "binary" },
@@ -399,15 +391,16 @@
     if (!sessionStartAt) sessionStartAt = new Date();
 
     stopAllTimers();
-    const duration = parseInt(document.getElementById("duration-select").value, 10);
     if (!globalInterval) {
       globalInterval = setInterval(() => {
-        globalTime = Math.min(globalTime + 0.01, duration);
+        globalTime = Math.min(globalTime + 0.01, DURATION_SECONDS);
         updateDisplay();
-        if (globalTime >= duration) {
+        if (globalTime >= DURATION_SECONDS) {
           stopAllTimers();
           clearInterval(globalInterval);
           globalInterval = null;
+          // Capture end time if it auto-finishes
+          if (!sessionEndAt) sessionEndAt = new Date();
         }
       }, 10);
     }
@@ -442,109 +435,149 @@
     defaultRadios.forEach(r => r.checked = true);
   }
 
-  // ----- Summary Builder -----
-  function buildBehaviorRows(tbody, total) {
-    for (let i = 0; i < 4; i++) {
-      const exact = timers[i];
-      const autoCode = proportionToAutoCode(exact, total);
+  // ----- Row builders -----
+  function addBehaviorRow(tbody, idx, label) {
+    const exact = timers[idx];
+    const autoCode = proportionToAutoCode(exact, globalTime);
 
-      const row = document.createElement("tr");
+    const row = document.createElement("tr");
 
-      // Category
-      const tdCat = document.createElement("td");
-      tdCat.textContent = labels[i];
-      row.appendChild(tdCat);
+    // Category
+    const tdCat = document.createElement("td");
+    tdCat.textContent = label;
+    row.appendChild(tdCat);
 
-      // Exact time
-      const tdTime = document.createElement("td");
-      tdTime.textContent = exact.toFixed(2);
-      row.appendChild(tdTime);
+    // Exact time
+    const tdTime = document.createElement("td");
+    tdTime.textContent = exact.toFixed(2);
+    row.appendChild(tdTime);
 
-      // Auto rating (text)
-      const tdAuto = document.createElement("td");
-      tdAuto.textContent = ratingCodeToLabel(autoCode);
-      row.appendChild(tdAuto);
+    // Auto rating (text)
+    const tdAuto = document.createElement("td");
+    tdAuto.textContent = ratingCodeToLabel(autoCode);
+    row.appendChild(tdAuto);
 
-      // Editable rating radios (0/1/2)
-      const tdYour = document.createElement("td");
-      const groupName = `behRate${i}`;
-      const cont = document.createElement("div");
-      cont.className = "rating-group";
-      [0,1,2].forEach(val => {
-        const lab = document.createElement("label");
-        const inp = document.createElement("input");
-        inp.type = "radio";
-        inp.name = groupName;
-        inp.value = String(val);
-        if (val === autoCode) inp.checked = true; // preselect from auto
-        lab.appendChild(inp);
-        lab.appendChild(document.createTextNode(ratingCodeToLabel(val)));
-        cont.appendChild(lab);
-      });
-      tdYour.appendChild(cont);
-      row.appendChild(tdYour);
-
-      tbody.appendChild(row);
-    }
-  }
-
-  function buildQuestionRows(tbody) {
-    questionDefs.forEach(q => {
-      const currentVal = document.querySelector(`input[name='${q.name}']:checked`).value;
-
-      const row = document.createElement("tr");
-
-      // Label
-      const tdCat = document.createElement("td");
-      tdCat.textContent = q.label;
-      row.appendChild(tdCat);
-
-      // Exact time blank
-      const tdTime = document.createElement("td");
-      tdTime.textContent = ""; // leave blank per request
-      row.appendChild(tdTime);
-
-      // Auto rating: reflect current selection
-      const tdAuto = document.createElement("td");
-      if (q.type === "binary") tdAuto.textContent = yesNoLabel(currentVal);
-      else tdAuto.textContent = helpFreqLabel(currentVal);
-      row.appendChild(tdAuto);
-
-      // Editable rating radios (0/1 for binary, 0/1/2 for trinary)
-      const tdYour = document.createElement("td");
-      const groupName = `qRate_${q.name}`;
-      const cont = document.createElement("div");
-      cont.className = "rating-group";
-      const opts = q.type === "binary" ? [0,1] : [0,1,2];
-
-      opts.forEach(val => {
-        const lab = document.createElement("label");
-        const inp = document.createElement("input");
-        inp.type = "radio";
-        inp.name = groupName;
-        inp.value = String(val);
-        if (String(val) === String(currentVal)) inp.checked = true;
-        // When adjusted here, reflect back to the original radio group above
-        inp.addEventListener("change", () => {
-          const original = document.querySelector(`input[name='${q.name}'][value='${val}']`);
-          if (original) original.checked = true;
-        });
-        lab.appendChild(inp);
-        if (q.type === "binary") {
-          lab.appendChild(document.createTextNode(yesNoLabel(val)));
-        } else {
-          lab.appendChild(document.createTextNode(helpFreqLabel(val)));
-        }
-        cont.appendChild(lab);
-      });
-
-      tdYour.appendChild(cont);
-      row.appendChild(tdYour);
-
-      tbody.appendChild(row);
+    // Editable rating radios (0/1/2)
+    const tdYour = document.createElement("td");
+    const groupName = `behRate${idx}`;
+    const cont = document.createElement("div");
+    cont.className = "rating-group";
+    [0,1,2].forEach(val => {
+      const lab = document.createElement("label");
+      const inp = document.createElement("input");
+      inp.type = "radio";
+      inp.name = groupName;
+      inp.value = String(val);
+      if (val === autoCode) inp.checked = true;
+      lab.appendChild(inp);
+      lab.appendChild(document.createTextNode(ratingCodeToLabel(val)));
+      cont.appendChild(lab);
     });
+    tdYour.appendChild(cont);
+    row.appendChild(tdYour);
+
+    tbody.appendChild(row);
   }
 
+  function addQuestionRow(tbody, q) {
+    const currentVal = document.querySelector(`input[name='${q.name}']:checked`).value;
+
+    const row = document.createElement("tr");
+
+    // Label
+    const tdCat = document.createElement("td");
+    tdCat.textContent = q.label;
+    row.appendChild(tdCat);
+
+    // Exact time blank
+    const tdTime = document.createElement("td");
+    tdTime.textContent = ""; // leave blank per request
+    row.appendChild(tdTime);
+
+    // Auto rating: reflect current selection
+    const tdAuto = document.createElement("td");
+    if (q.type === "binary") tdAuto.textContent = yesNoLabel(currentVal);
+    else tdAuto.textContent = helpFreqLabel(currentVal);
+    row.appendChild(tdAuto);
+
+    // Editable rating radios (0/1 for binary, 0/1/2 for trinary)
+    const tdYour = document.createElement("td");
+    const groupName = `qRate_${q.name}`;
+    const cont = document.createElement("div");
+    cont.className = "rating-group";
+    const opts = q.type === "binary" ? [0,1] : [0,1,2];
+
+    opts.forEach(val => {
+      const lab = document.createElement("label");
+      const inp = document.createElement("input");
+      inp.type = "radio";
+      inp.name = groupName;
+      inp.value = String(val);
+      if (String(val) === String(currentVal)) inp.checked = true;
+      // When adjusted here, reflect back to the original radio group above
+      inp.addEventListener("change", () => {
+        const original = document.querySelector(`input[name='${q.name}'][value='${val}']`);
+        if (original) original.checked = true;
+      });
+      lab.appendChild(inp);
+      if (q.type === "binary") {
+        lab.appendChild(document.createTextNode(yesNoLabel(val)));
+      } else {
+        lab.appendChild(document.createTextNode(helpFreqLabel(val)));
+      }
+      cont.appendChild(lab);
+    });
+
+    tdYour.appendChild(cont);
+    row.appendChild(tdYour);
+
+    tbody.appendChild(row);
+  }
+
+  function addParticipatedRow(tbody) {
+    const anyDidOrListened = (timers[0] > 0) || (timers[1] > 0);
+    const autoVal = anyDidOrListened ? 1 : 0;
+
+    const row = document.createElement("tr");
+
+    // Label
+    const tdCat = document.createElement("td");
+    tdCat.textContent = "Participated";
+    row.appendChild(tdCat);
+
+    // Exact time blank
+    const tdTime = document.createElement("td");
+    tdTime.textContent = "";
+    row.appendChild(tdTime);
+
+    // Auto rating
+    const tdAuto = document.createElement("td");
+    tdAuto.textContent = yesNoLabel(autoVal);
+    row.appendChild(tdAuto);
+
+    // Editable rating radios (0/1)
+    const tdYour = document.createElement("td");
+    const groupName = "participatedRate";
+    const cont = document.createElement("div");
+    cont.className = "rating-group";
+    [0,1].forEach(val => {
+      const lab = document.createElement("label");
+      const inp = document.createElement("input");
+      inp.type = "radio";
+      inp.name = groupName;
+      inp.value = String(val);
+      if (val === autoVal) inp.checked = true;
+      lab.appendChild(inp);
+      lab.appendChild(document.createTextNode(yesNoLabel(val)));
+      cont.appendChild(lab);
+    });
+    tdYour.appendChild(cont);
+    row.appendChild(tdYour);
+
+    tbody.appendChild(row);
+  }
+
+  // ----- Summary Builder -----
   function showSummary() {
     stopAllTimers();
     if (globalInterval) clearInterval(globalInterval);
@@ -561,15 +594,46 @@
     document.getElementById("info-duration").innerText = formatSecs(globalTime);
     document.getElementById("info-start").innerText = formatTimeHMSS(sessionStartAt);
     document.getElementById("info-end").innerText = formatTimeHMSS(sessionEndAt);
-    document.getElementById("info-target").innerText = parseInt(document.getElementById("duration-select").value, 10) + "s";
 
-    // Combined Table
+    // Combined Table in specified order
     const tbody = document.getElementById("combined-body");
     tbody.innerHTML = "";
-    const total = globalTime;
 
-    buildBehaviorRows(tbody, total);
-    buildQuestionRows(tbody);
+    // 1) Participated
+    addParticipatedRow(tbody);
+
+    // 2) Tried to leave (q1)
+    addQuestionRow(tbody, questionDefs.find(q => q.name === "q1"));
+
+    // 3) Left (q2)
+    addQuestionRow(tbody, questionDefs.find(q => q.name === "q2"));
+
+    // 4) Did/Commented (behavior 0)
+    addBehaviorRow(tbody, 0, "DID / COMMENTED");
+
+    // 5) Listened/Watched (behavior 1)
+    addBehaviorRow(tbody, 1, "LISTENED / WATCHED");
+
+    // 6) Did Other (behavior 2)
+    addBehaviorRow(tbody, 2, "DID OTHER");
+
+    // 7) Slept (behavior 3)
+    addBehaviorRow(tbody, 3, "SLEPT");
+
+    // 8) Pleasure (q8)
+    addQuestionRow(tbody, questionDefs.find(q => q.name === "q8"));
+
+    // 9) Anxiety (q9)
+    addQuestionRow(tbody, questionDefs.find(q => q.name === "q9"));
+
+    // 10) Helped (q10)
+    addQuestionRow(tbody, questionDefs.find(q => q.name === "q10"));
+
+    // 10a) Helped Frequency (q10a)
+    addQuestionRow(tbody, questionDefs.find(q => q.name === "q10a"));
+
+    // 11) Inappropriate Behavior (q11)
+    addQuestionRow(tbody, questionDefs.find(q => q.name === "q11"));
 
     document.getElementById("summary").style.display = "block";
     window.scrollTo({ top: document.getElementById("summary").offsetTop - 10, behavior: "smooth" });
