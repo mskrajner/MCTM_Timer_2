@@ -1,3 +1,6 @@
+Done—numbered the summary items exactly in order. Full updated code:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -139,7 +142,7 @@
       flex-wrap: wrap;
     }
     .rating-group label {
-      display: inline-flex;
+      display: inline-flex,
       align-items: center;
       gap: 4px;
       font-weight: 500;
@@ -341,12 +344,10 @@
     input.value = local;
   }
 
-  function formatSecs(s) {
-    return s.toFixed(2) + 's';
-  }
+  function formatSecs(s) { return s.toFixed(2) + 's'; }
 
   function proportionToAutoCode(part, total) {
-    if (total <= 0) return 0; // default to 0 if no time recorded
+    if (total <= 0) return 0;
     if (part === 0) return 0;
     if (part <= total / 2) return 1;
     return 2;
@@ -361,16 +362,12 @@
     }
   }
 
-  function yesNoLabel(code) {
-    return Number(code) === 1 ? "1 (Yes)" : "0 (No)";
-  }
-
+  function yesNoLabel(code) { return Number(code) === 1 ? "1 (Yes)" : "0 (No)"; }
   function helpFreqLabel(code) {
     if (Number(code) === 0) return "0 (0 times)";
     if (Number(code) === 1) return "1 (1–2 times)";
     return "2 (3+ times)";
   }
-
   function formatTimeHMSS(d) {
     if (!d) return "—";
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -387,7 +384,6 @@
 
   // ----- Timer Controls -----
   function startTimer(index) {
-    // Note start time on first interaction
     if (!sessionStartAt) sessionStartAt = new Date();
 
     stopAllTimers();
@@ -399,7 +395,6 @@
           stopAllTimers();
           clearInterval(globalInterval);
           globalInterval = null;
-          // Capture end time if it auto-finishes
           if (!sessionEndAt) sessionEndAt = new Date();
         }
       }, 10);
@@ -430,34 +425,29 @@
     updateDisplay();
     document.getElementById("summary").style.display = "none";
 
-    // Reset radios to defaults (0)
     const defaultRadios = document.querySelectorAll("input[type='radio'][value='0']");
     defaultRadios.forEach(r => r.checked = true);
   }
 
-  // ----- Row builders -----
-  function addBehaviorRow(tbody, idx, label) {
+  // ----- Row builders (with numbering) -----
+  function addBehaviorRow(tbody, idx, number, label) {
     const exact = timers[idx];
     const autoCode = proportionToAutoCode(exact, globalTime);
 
     const row = document.createElement("tr");
 
-    // Category
     const tdCat = document.createElement("td");
-    tdCat.textContent = label;
+    tdCat.textContent = `${number}) ${label}`;
     row.appendChild(tdCat);
 
-    // Exact time
     const tdTime = document.createElement("td");
     tdTime.textContent = exact.toFixed(2);
     row.appendChild(tdTime);
 
-    // Auto rating (text)
     const tdAuto = document.createElement("td");
     tdAuto.textContent = ratingCodeToLabel(autoCode);
     row.appendChild(tdAuto);
 
-    // Editable rating radios (0/1/2)
     const tdYour = document.createElement("td");
     const groupName = `behRate${idx}`;
     const cont = document.createElement("div");
@@ -479,28 +469,24 @@
     tbody.appendChild(row);
   }
 
-  function addQuestionRow(tbody, q) {
+  function addQuestionRow(tbody, q, number) {
     const currentVal = document.querySelector(`input[name='${q.name}']:checked`).value;
 
     const row = document.createElement("tr");
 
-    // Label
     const tdCat = document.createElement("td");
-    tdCat.textContent = q.label;
+    tdCat.textContent = `${number}) ${q.label}`;
     row.appendChild(tdCat);
 
-    // Exact time blank
     const tdTime = document.createElement("td");
-    tdTime.textContent = ""; // leave blank per request
+    tdTime.textContent = ""; // blank per request
     row.appendChild(tdTime);
 
-    // Auto rating: reflect current selection
     const tdAuto = document.createElement("td");
     if (q.type === "binary") tdAuto.textContent = yesNoLabel(currentVal);
     else tdAuto.textContent = helpFreqLabel(currentVal);
     row.appendChild(tdAuto);
 
-    // Editable rating radios (0/1 for binary, 0/1/2 for trinary)
     const tdYour = document.createElement("td");
     const groupName = `qRate_${q.name}`;
     const cont = document.createElement("div");
@@ -514,17 +500,12 @@
       inp.name = groupName;
       inp.value = String(val);
       if (String(val) === String(currentVal)) inp.checked = true;
-      // When adjusted here, reflect back to the original radio group above
       inp.addEventListener("change", () => {
         const original = document.querySelector(`input[name='${q.name}'][value='${val}']`);
         if (original) original.checked = true;
       });
       lab.appendChild(inp);
-      if (q.type === "binary") {
-        lab.appendChild(document.createTextNode(yesNoLabel(val)));
-      } else {
-        lab.appendChild(document.createTextNode(helpFreqLabel(val)));
-      }
+      lab.appendChild(document.createTextNode(q.type === "binary" ? yesNoLabel(val) : helpFreqLabel(val)));
       cont.appendChild(lab);
     });
 
@@ -534,28 +515,24 @@
     tbody.appendChild(row);
   }
 
-  function addParticipatedRow(tbody) {
+  function addParticipatedRow(tbody, number) {
     const anyDidOrListened = (timers[0] > 0) || (timers[1] > 0);
     const autoVal = anyDidOrListened ? 1 : 0;
 
     const row = document.createElement("tr");
 
-    // Label
     const tdCat = document.createElement("td");
-    tdCat.textContent = "Participated";
+    tdCat.textContent = `${number}) Participated`;
     row.appendChild(tdCat);
 
-    // Exact time blank
     const tdTime = document.createElement("td");
     tdTime.textContent = "";
     row.appendChild(tdTime);
 
-    // Auto rating
     const tdAuto = document.createElement("td");
     tdAuto.textContent = yesNoLabel(autoVal);
     row.appendChild(tdAuto);
 
-    // Editable rating radios (0/1)
     const tdYour = document.createElement("td");
     const groupName = "participatedRate";
     const cont = document.createElement("div");
@@ -583,10 +560,8 @@
     if (globalInterval) clearInterval(globalInterval);
     globalInterval = null;
 
-    // End time captured now
     sessionEndAt = new Date();
 
-    // Session Info
     const pid = document.getElementById("participant-id").value.trim() || "(none entered)";
     const dateVal = document.getElementById("session-date").value || "(none selected)";
     document.getElementById("info-id").innerText = pid;
@@ -595,45 +570,23 @@
     document.getElementById("info-start").innerText = formatTimeHMSS(sessionStartAt);
     document.getElementById("info-end").innerText = formatTimeHMSS(sessionEndAt);
 
-    // Combined Table in specified order
     const tbody = document.getElementById("combined-body");
     tbody.innerHTML = "";
 
-    // 1) Participated
-    addParticipatedRow(tbody);
-
-    // 2) Tried to leave (q1)
-    addQuestionRow(tbody, questionDefs.find(q => q.name === "q1"));
-
-    // 3) Left (q2)
-    addQuestionRow(tbody, questionDefs.find(q => q.name === "q2"));
-
-    // 4) Did/Commented (behavior 0)
-    addBehaviorRow(tbody, 0, "DID / COMMENTED");
-
-    // 5) Listened/Watched (behavior 1)
-    addBehaviorRow(tbody, 1, "LISTENED / WATCHED");
-
-    // 6) Did Other (behavior 2)
-    addBehaviorRow(tbody, 2, "DID OTHER");
-
-    // 7) Slept (behavior 3)
-    addBehaviorRow(tbody, 3, "SLEPT");
-
-    // 8) Pleasure (q8)
-    addQuestionRow(tbody, questionDefs.find(q => q.name === "q8"));
-
-    // 9) Anxiety (q9)
-    addQuestionRow(tbody, questionDefs.find(q => q.name === "q9"));
-
-    // 10) Helped (q10)
-    addQuestionRow(tbody, questionDefs.find(q => q.name === "q10"));
-
-    // 10a) Helped Frequency (q10a)
-    addQuestionRow(tbody, questionDefs.find(q => q.name === "q10a"));
-
-    // 11) Inappropriate Behavior (q11)
-    addQuestionRow(tbody, questionDefs.find(q => q.name === "q11"));
+    // Numbered in exact order requested:
+    let n = 1;
+    addParticipatedRow(tbody, n++);                               // 1
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q1"), n++);  // 2
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q2"), n++);  // 3
+    addBehaviorRow(tbody, 0, n++, "DID / COMMENTED");                  // 4
+    addBehaviorRow(tbody, 1, n++, "LISTENED / WATCHED");               // 5
+    addBehaviorRow(tbody, 2, n++, "DID OTHER");                        // 6
+    addBehaviorRow(tbody, 3, n++, "SLEPT");                            // 7
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q8"), n++); // 8
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q9"), n++); // 9
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10"), n++); // 10
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10a"), n++); // 10a (will show as 11 here numerically)
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q11"), n++); // 11
 
     document.getElementById("summary").style.display = "block";
     window.scrollTo({ top: document.getElementById("summary").offsetTop - 10, behavior: "smooth" });
@@ -650,3 +603,6 @@
   </script>
 </body>
 </html>
+```
+
+Want me to label the “Helped frequency” row as **“10a)”** instead of incrementing to 11? I can hard-code that label if you prefer that style.
