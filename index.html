@@ -1,1 +1,605 @@
+Here’s the fully updated code with your requests:
+
+* Top field now collects **date only** (auto-filled to today).
+* Summary shows **Date, Start Time, End Time**, and **Total Duration**.
+* The items that were “on the bottom” (the Yes/No + 0/1/2 questions) now appear **in the same summary table** and **format** as the behavior rows:
+
+  * Their **Exact Time** cell is blank.
+  * They include **adjustable radio buttons** (so you can change 0/1 or 0/1/2 right in the summary).
+  * Changing a summary radio for a question also updates the original selection above.
+
+I double-checked for syntax and runtime errors.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MPES Timer (Version 2025-08-13)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
+      background-color: #f9f9f9;
+    }
+    h1 { margin-bottom: 12px; }
+    .top-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      align-items: end;
+      max-width: 900px;
+      margin: 0 auto 8px;
+      text-align: left;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    input[type="text"], input[type="date"], select {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    label { font-weight: 600; }
+
+    #global-timer {
+      font-size: 24px;
+      margin: 15px 0;
+    }
+
+    .timer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 10px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .timer-box {
+      background-color: #ccc;
+      border: 1px solid #bbb;
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+    }
+    .timer-box h3 { margin-top: 0; }
+    .timer-box.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .start-button, .stop-button, .reset-button {
+      margin: 8px;
+      padding: 8px 16px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .start-button { background-color: #4CAF50; color: white; }
+    .stop-button { background-color: #f44336; color: white; }
+    .reset-button { background-color: #9e9e9e; color: white; }
+
+    .matrix {
+      margin-top: 24px;
+      width: 100%;
+    }
+    .matrix table {
+      margin: 0 auto;
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 800px;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .matrix td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    .matrix tr:nth-child(even) { background-color: #f6f6f6; }
+
+    .actions {
+      margin: 18px 0 8px;
+    }
+
+    .summary-section {
+      max-width: 1000px;
+      margin: 24px auto;
+      text-align: left;
+    }
+    .summary-section h2 { text-align: center; }
+
+    .summary-table, .info-table {
+      margin: 12px auto 24px;
+      border-collapse: collapse;
+      width: 100%;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .summary-table th, .summary-table td,
+    .info-table th, .info-table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    .summary-table th, .info-table th {
+      background-color: #f0f0f0;
+    }
+
+    .legend {
+      max-width: 1000px;
+      margin: 0 auto 14px;
+      font-size: 14px;
+      color: #333;
+      background: #fff;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+
+    .rating-group {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .rating-group label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <h1>MPES Timer (Version 2025-08-13)</h1>
+
+  <!-- Top controls: Participant ID, Date (auto-filled), Duration select, Global display -->
+  <div class="top-controls">
+    <div class="field">
+      <label for="participant-id">Participant ID</label>
+      <input id="participant-id" type="text" placeholder="Enter ID number (e.g., A12-034)" />
+    </div>
+    <div class="field">
+      <label for="session-date">Session Date</label>
+      <input id="session-date" type="date" />
+    </div>
+    <div class="field">
+      <label for="duration-select">Select Timer Duration</label>
+      <select id="duration-select">
+        <option value="60">1 Minute</option>
+        <option value="120" selected>2 Minutes</option>
+        <option value="180">3 Minutes</option>
+        <option value="240">4 Minutes</option>
+        <option value="300">5 Minutes</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Global Timer</label>
+      <div id="global-timer">0.00s</div>
+    </div>
+  </div>
+
+  <!-- Behavior Timers -->
+  <div class="timer-grid">
+    <div class="timer-box" id="box0">
+      <h3>DID / COMMENTED</h3>
+      <div id="timer0">0.00s</div>
+      <button class="start-button" onclick="startTimer(0)">Start</button>
+    </div>
+    <div class="timer-box" id="box1">
+      <h3>LISTENED / WATCHED</h3>
+      <div id="timer1">0.00s</div>
+      <button class="start-button" onclick="startTimer(1)">Start</button>
+    </div>
+    <div class="timer-box" id="box2">
+      <h3>DID OTHER</h3>
+      <div id="timer2">0.00s</div>
+      <button class="start-button" onclick="startTimer(2)">Start</button>
+    </div>
+    <div class="timer-box" id="box3">
+      <h3>SLEPT</h3>
+      <div id="timer3">0.00s</div>
+      <button class="start-button" onclick="startTimer(3)">Start</button>
+    </div>
+  </div>
+
+  <!-- Binary/ordinal questions -->
+  <div class="matrix">
+    <table>
+      <tr>
+        <td>Did the person try to leave?</td>
+        <td>
+          <label><input type="radio" name="q1" value="0" checked> 0 (No)</label>
+          <label><input type="radio" name="q1" value="1"> 1 (Yes)</label>
+        </td>
+      </tr>
+      <tr>
+        <td>Did the person actually leave?</td>
+        <td>
+          <label><input type="radio" name="q2" value="0" checked> 0 (No)</label>
+          <label><input type="radio" name="q2" value="1"> 1 (Yes)</label>
+        </td>
+      </tr>
+      <tr>
+        <td>Was any pleasure displayed?</td>
+        <td>
+          <label><input type="radio" name="q8" value="0" checked> 0 (No)</label>
+          <label><input type="radio" name="q8" value="1"> 1 (Yes)</label>
+        </td>
+      </tr>
+      <tr>
+        <td>Was any anxiety displayed?</td>
+        <td>
+          <label><input type="radio" name="q9" value="0" checked> 0 (No)</label>
+          <label><input type="radio" name="q9" value="1"> 1 (Yes)</label>
+        </td>
+      </tr>
+      <tr>
+        <td>Did the person help?</td>
+        <td>
+          <label><input type="radio" name="q10" value="0" checked> 0 (No)</label>
+          <label><input type="radio" name="q10" value="1"> 1 (Yes)</label>
+        </td>
+      </tr>
+      <tr>
+        <td>How many times did they help?</td>
+        <td>
+          <label><input type="radio" name="q10a" value="0" checked> 0 (0 times)</label>
+          <label><input type="radio" name="q10a" value="1"> 1 (1–2 times)</label>
+          <label><input type="radio" name="q10a" value="2"> 2 (3+ times)</label>
+        </td>
+      </tr>
+      <tr>
+        <td>Any inappropriate behavior?</td>
+        <td>
+          <label><input type="radio" name="q11" value="0" checked> 0 (No)</label>
+          <label><input type="radio" name="q11" value="1"> 1 (Yes)</label>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="actions">
+    <button class="stop-button" onclick="showSummary()">DONE</button>
+    <button class="reset-button" onclick="resetAllTimers()">RESET</button>
+  </div>
+
+  <!-- Summary -->
+  <div id="summary" class="summary-section" style="display:none;">
+    <h2>Summary</h2>
+
+    <div class="legend">
+      <strong>Code legends:</strong>
+      &nbsp;Binary: 0 (No), 1 (Yes) &nbsp;|&nbsp;
+      Proportions: 0 (Not at all), 1 (Up to half), 2 (More than half)
+    </div>
+
+    <table class="info-table">
+      <thead>
+        <tr><th colspan="6">Session Info</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Participant ID</strong></td>
+          <td id="info-id"></td>
+          <td><strong>Date</strong></td>
+          <td id="info-date"></td>
+          <td><strong>Total Observed Duration</strong></td>
+          <td id="info-duration"></td>
+        </tr>
+        <tr>
+          <td><strong>Start Time</strong></td>
+          <td id="info-start"></td>
+          <td><strong>End Time</strong></td>
+          <td id="info-end"></td>
+          <td><strong>Duration Setting</strong></td>
+          <td id="info-target"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="summary-table" id="combined-table">
+      <thead>
+        <tr>
+          <th>Category / Question</th>
+          <th>Exact Time (s)</th>
+          <th>Auto Rating</th>
+          <th>Your Rating (adjust if needed)</th>
+        </tr>
+      </thead>
+      <tbody id="combined-body"></tbody>
+    </table>
+
+    <div class="footer-note">You can adjust the ratings with the radio buttons above. For questions, changes here also update the selections in the form above.</div>
+  </div>
+
+  <script>
+  // ----- State -----
+  let timers = [0, 0, 0, 0];
+  let intervals = [null, null, null, null];
+  let globalTime = 0;
+  let globalInterval = null;
+  let currentActive = null;
+
+  // Track start/end times automatically
+  let sessionStartAt = null;
+  let sessionEndAt = null;
+
+  const labels = ["DID / COMMENTED", "LISTENED / WATCHED", "DID OTHER", "SLEPT"];
+
+  // Question defs
+  const questionDefs = [
+    { name: "q1",  label: "Tried to Leave",          type: "binary" },
+    { name: "q2",  label: "Left",                    type: "binary" },
+    { name: "q8",  label: "Pleasure",                type: "binary" },
+    { name: "q9",  label: "Anxiety",                 type: "binary" },
+    { name: "q10", label: "Helped",                  type: "binary" },
+    { name: "q10a",label: "Helped Frequency",        type: "trinary" },
+    { name: "q11", label: "Inappropriate Behavior",  type: "binary" },
+  ];
+
+  // ----- Utils -----
+  function setTodayToDateInput(input) {
+    const now = new Date();
+    const tzoffset = now.getTimezoneOffset() * 60000;
+    const local = new Date(now - tzoffset).toISOString().slice(0,10);
+    input.value = local;
+  }
+
+  function formatSecs(s) {
+    return s.toFixed(2) + 's';
+  }
+
+  function proportionToAutoCode(part, total) {
+    if (total <= 0) return 0; // default to 0 if no time recorded
+    if (part === 0) return 0;
+    if (part <= total / 2) return 1;
+    return 2;
+  }
+
+  function ratingCodeToLabel(code) {
+    switch (Number(code)) {
+      case 0: return "0 (Not at all)";
+      case 1: return "1 (Up to half)";
+      case 2: return "2 (More than half)";
+      default: return String(code);
+    }
+  }
+
+  function yesNoLabel(code) {
+    return Number(code) === 1 ? "1 (Yes)" : "0 (No)";
+  }
+
+  function helpFreqLabel(code) {
+    if (Number(code) === 0) return "0 (0 times)";
+    if (Number(code) === 1) return "1 (1–2 times)";
+    return "2 (3+ times)";
+  }
+
+  function formatTimeHMSS(d) {
+    if (!d) return "—";
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  // ----- Display Updates -----
+  function updateDisplay() {
+    for (let i = 0; i < 4; i++) {
+      document.getElementById(`timer${i}`).innerText = formatSecs(timers[i]);
+      document.getElementById(`box${i}`).classList.toggle('active', currentActive === i);
+    }
+    document.getElementById('global-timer').innerText = formatSecs(globalTime);
+  }
+
+  // ----- Timer Controls -----
+  function startTimer(index) {
+    // Note start time on first interaction
+    if (!sessionStartAt) sessionStartAt = new Date();
+
+    stopAllTimers();
+    const duration = parseInt(document.getElementById("duration-select").value, 10);
+    if (!globalInterval) {
+      globalInterval = setInterval(() => {
+        globalTime = Math.min(globalTime + 0.01, duration);
+        updateDisplay();
+        if (globalTime >= duration) {
+          stopAllTimers();
+          clearInterval(globalInterval);
+          globalInterval = null;
+        }
+      }, 10);
+    }
+    currentActive = index;
+    intervals[index] = setInterval(() => {
+      timers[index] += 0.01;
+      updateDisplay();
+    }, 10);
+  }
+
+  function stopAllTimers() {
+    for (let i = 0; i < intervals.length; i++) {
+      clearInterval(intervals[i]);
+      intervals[i] = null;
+    }
+    currentActive = null;
+  }
+
+  function resetAllTimers() {
+    stopAllTimers();
+    if (globalInterval) clearInterval(globalInterval);
+    globalInterval = null;
+    timers = [0, 0, 0, 0];
+    globalTime = 0;
+    sessionStartAt = null;
+    sessionEndAt = null;
+    updateDisplay();
+    document.getElementById("summary").style.display = "none";
+
+    // Reset radios to defaults (0)
+    const defaultRadios = document.querySelectorAll("input[type='radio'][value='0']");
+    defaultRadios.forEach(r => r.checked = true);
+  }
+
+  // ----- Summary Builder -----
+  function buildBehaviorRows(tbody, total) {
+    for (let i = 0; i < 4; i++) {
+      const exact = timers[i];
+      const autoCode = proportionToAutoCode(exact, total);
+
+      const row = document.createElement("tr");
+
+      // Category
+      const tdCat = document.createElement("td");
+      tdCat.textContent = labels[i];
+      row.appendChild(tdCat);
+
+      // Exact time
+      const tdTime = document.createElement("td");
+      tdTime.textContent = exact.toFixed(2);
+      row.appendChild(tdTime);
+
+      // Auto rating (text)
+      const tdAuto = document.createElement("td");
+      tdAuto.textContent = ratingCodeToLabel(autoCode);
+      row.appendChild(tdAuto);
+
+      // Editable rating radios (0/1/2)
+      const tdYour = document.createElement("td");
+      const groupName = `behRate${i}`;
+      const cont = document.createElement("div");
+      cont.className = "rating-group";
+      [0,1,2].forEach(val => {
+        const lab = document.createElement("label");
+        const inp = document.createElement("input");
+        inp.type = "radio";
+        inp.name = groupName;
+        inp.value = String(val);
+        if (val === autoCode) inp.checked = true; // preselect from auto
+        lab.appendChild(inp);
+        lab.appendChild(document.createTextNode(ratingCodeToLabel(val)));
+        cont.appendChild(lab);
+      });
+      tdYour.appendChild(cont);
+      row.appendChild(tdYour);
+
+      tbody.appendChild(row);
+    }
+  }
+
+  function buildQuestionRows(tbody) {
+    questionDefs.forEach(q => {
+      const currentVal = document.querySelector(`input[name='${q.name}']:checked`).value;
+
+      const row = document.createElement("tr");
+
+      // Label
+      const tdCat = document.createElement("td");
+      tdCat.textContent = q.label;
+      row.appendChild(tdCat);
+
+      // Exact time blank
+      const tdTime = document.createElement("td");
+      tdTime.textContent = ""; // leave blank per request
+      row.appendChild(tdTime);
+
+      // Auto rating: reflect current selection
+      const tdAuto = document.createElement("td");
+      if (q.type === "binary") tdAuto.textContent = yesNoLabel(currentVal);
+      else tdAuto.textContent = helpFreqLabel(currentVal);
+      row.appendChild(tdAuto);
+
+      // Editable rating radios (0/1 for binary, 0/1/2 for trinary)
+      const tdYour = document.createElement("td");
+      const groupName = `qRate_${q.name}`;
+      const cont = document.createElement("div");
+      cont.className = "rating-group";
+      const opts = q.type === "binary" ? [0,1] : [0,1,2];
+
+      opts.forEach(val => {
+        const lab = document.createElement("label");
+        const inp = document.createElement("input");
+        inp.type = "radio";
+        inp.name = groupName;
+        inp.value = String(val);
+        if (String(val) === String(currentVal)) inp.checked = true;
+        // When adjusted here, reflect back to the original radio group above
+        inp.addEventListener("change", () => {
+          const original = document.querySelector(`input[name='${q.name}'][value='${val}']`);
+          if (original) original.checked = true;
+        });
+        lab.appendChild(inp);
+        if (q.type === "binary") {
+          lab.appendChild(document.createTextNode(yesNoLabel(val)));
+        } else {
+          lab.appendChild(document.createTextNode(helpFreqLabel(val)));
+        }
+        cont.appendChild(lab);
+      });
+
+      tdYour.appendChild(cont);
+      row.appendChild(tdYour);
+
+      tbody.appendChild(row);
+    });
+  }
+
+  function showSummary() {
+    stopAllTimers();
+    if (globalInterval) clearInterval(globalInterval);
+    globalInterval = null;
+
+    // End time captured now
+    sessionEndAt = new Date();
+
+    // Session Info
+    const pid = document.getElementById("participant-id").value.trim() || "(none entered)";
+    const dateVal = document.getElementById("session-date").value || "(none selected)";
+    document.getElementById("info-id").innerText = pid;
+    document.getElementById("info-date").innerText = dateVal;
+    document.getElementById("info-duration").innerText = formatSecs(globalTime);
+    document.getElementById("info-start").innerText = formatTimeHMSS(sessionStartAt);
+    document.getElementById("info-end").innerText = formatTimeHMSS(sessionEndAt);
+    document.getElementById("info-target").innerText = parseInt(document.getElementById("duration-select").value, 10) + "s";
+
+    // Combined Table
+    const tbody = document.getElementById("combined-body");
+    tbody.innerHTML = "";
+    const total = globalTime;
+
+    buildBehaviorRows(tbody, total);
+    buildQuestionRows(tbody);
+
+    document.getElementById("summary").style.display = "block";
+    window.scrollTo({ top: document.getElementById("summary").offsetTop - 10, behavior: "smooth" });
+  }
+
+  // ----- Init -----
+  function init() {
+    updateDisplay();
+    const dateInput = document.getElementById("session-date");
+    setTodayToDateInput(dateInput);
+  }
+
+  init();
+  </script>
+</body>
+</html>
+```
+
+Want me to add an **Export to CSV** button that captures Participant ID, date, start/end times, behavior times, and all codes?
 
