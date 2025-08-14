@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -93,9 +92,7 @@
     }
     .matrix tr:nth-child(even) { background-color: #f6f6f6; }
 
-    .actions {
-      margin: 18px 0 8px;
-    }
+    .actions { margin: 18px 0 8px; }
 
     .summary-section {
       max-width: 1000px;
@@ -112,15 +109,21 @@
       border-radius: 12px;
       overflow: hidden;
     }
-    .summary-table th, .summary-table td,
+    /* Info table can stay centered */
     .info-table th, .info-table td {
       border: 1px solid #ccc;
       padding: 8px;
       text-align: center;
     }
-    .summary-table th, .info-table th {
-      background-color: #f0f0f0;
+    .info-table th { background-color: #f0f0f0; }
+
+    /* SUMMARY TABLE: left-justify all cells */
+    .summary-table th, .summary-table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left; /* left-justified */
     }
+    .summary-table th { background-color: #f0f0f0; }
 
     .legend {
       max-width: 1000px;
@@ -135,15 +138,25 @@
 
     .rating-group {
       display: flex;
-      gap: 8px;
-      justify-content: center;
+      gap: 10px;
+      justify-content: flex-start; /* left-align radio group */
       flex-wrap: wrap;
     }
     .rating-group label {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       font-weight: 500;
+    }
+
+    /* When user changes rating from the auto value, color turns red */
+    .rating-cell.changed { color: #c62828; }
+    .rating-cell.changed input[type="radio"] { accent-color: #c62828; }
+
+    .selected-label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: inline-block;
     }
 
     .footer-note {
@@ -296,14 +309,13 @@
         <tr>
           <th>Category / Question</th>
           <th>Exact Time (s)</th>
-          <th>Auto Rating</th>
-          <th>Your Rating (adjust if needed)</th>
+          <th>Rating (change if needed)</th>
         </tr>
       </thead>
       <tbody id="combined-body"></tbody>
     </table>
 
-    <div class="footer-note">You can adjust the ratings with the radio buttons above. For questions, changes here also update the selections in the form above.</div>
+    <div class="footer-note">Change any rating below if needed. If you change it, the text and radios turn red.</div>
   </div>
 
   <script>
@@ -427,6 +439,48 @@
     defaultRadios.forEach(r => r.checked = true);
   }
 
+  // ----- Rating cell builder -----
+  function buildRatingCell({ options, autoValue, labelFor, onChange }) {
+    const td = document.createElement("td");
+    const container = document.createElement("div");
+    container.className = "rating-cell";
+
+    // Selected label display
+    const selected = document.createElement("div");
+    selected.className = "selected-label";
+    selected.textContent = labelFor(autoValue);
+    container.appendChild(selected);
+
+    // Radios
+    const group = document.createElement("div");
+    group.className = "rating-group";
+    options.forEach(val => {
+      const lab = document.createElement("label");
+      const inp = document.createElement("input");
+      inp.type = "radio";
+      inp.name = Math.random().toString(36).slice(2); // unique name per cell
+      inp.value = String(val);
+      if (String(val) === String(autoValue)) inp.checked = true;
+
+      inp.addEventListener("change", () => {
+        // Update selected label
+        selected.textContent = labelFor(val);
+        // Mark changed if different from auto
+        const changed = String(val) !== String(autoValue);
+        container.classList.toggle("changed", changed);
+        if (typeof onChange === "function") onChange(val);
+      });
+
+      lab.appendChild(inp);
+      lab.appendChild(document.createTextNode(labelFor(val)));
+      group.appendChild(lab);
+    });
+
+    container.appendChild(group);
+    td.appendChild(container);
+    return td;
+  }
+
   // ----- Row builders (with custom numbering text) -----
   function addBehaviorRow(tbody, idx, numberText, label) {
     const exact = timers[idx];
@@ -442,33 +496,20 @@
     tdTime.textContent = exact.toFixed(2);
     row.appendChild(tdTime);
 
-    const tdAuto = document.createElement("td");
-    tdAuto.textContent = ratingCodeToLabel(autoCode);
-    row.appendChild(tdAuto);
-
-    const tdYour = document.createElement("td");
-    const groupName = `behRate${idx}`;
-    const cont = document.createElement("div");
-    cont.className = "rating-group";
-    [0,1,2].forEach(val => {
-      const lab = document.createElement("label");
-      const inp = document.createElement("input");
-      inp.type = "radio";
-      inp.name = groupName;
-      inp.value = String(val);
-      if (val === autoCode) inp.checked = true;
-      lab.appendChild(inp);
-      lab.appendChild(document.createTextNode(ratingCodeToLabel(val)));
-      cont.appendChild(lab);
+    // Rating cell (0/1/2), auto = autoCode
+    const tdRating = buildRatingCell({
+      options: [0,1,2],
+      autoValue: autoCode,
+      labelFor: ratingCodeToLabel
+      // no external sync needed for behaviors
     });
-    tdYour.appendChild(cont);
-    row.appendChild(tdYour);
+    row.appendChild(tdRating);
 
     tbody.appendChild(row);
   }
 
   function addQuestionRow(tbody, q, numberText) {
-    const currentVal = document.querySelector(`input[name='${q.name}']:checked`).value;
+    const autoVal = document.querySelector(`input[name='${q.name}']:checked`).value;
 
     const row = document.createElement("tr");
 
@@ -480,41 +521,25 @@
     tdTime.textContent = ""; // blank per request
     row.appendChild(tdTime);
 
-    const tdAuto = document.createElement("td");
-    tdAuto.textContent = (q.type === "binary") ? yesNoLabel(currentVal) : helpFreqLabel(currentVal);
-    row.appendChild(tdAuto);
-
-    const tdYour = document.createElement("td");
-    const groupName = `qRate_${q.name}`;
-    const cont = document.createElement("div");
-    cont.className = "rating-group";
+    // Rating cell (0/1 for binary; 0/1/2 for trinary) that also syncs back to original radios
     const opts = q.type === "binary" ? [0,1] : [0,1,2];
-
-    opts.forEach(val => {
-      const lab = document.createElement("label");
-      const inp = document.createElement("input");
-      inp.type = "radio";
-      inp.name = groupName;
-      inp.value = String(val);
-      if (String(val) === String(currentVal)) inp.checked = true;
-      inp.addEventListener("change", () => {
+    const tdRating = buildRatingCell({
+      options: opts,
+      autoValue: autoVal,
+      labelFor: (v) => q.type === "binary" ? yesNoLabel(v) : helpFreqLabel(v),
+      onChange: (val) => {
         const original = document.querySelector(`input[name='${q.name}'][value='${val}']`);
         if (original) original.checked = true;
-      });
-      lab.appendChild(inp);
-      lab.appendChild(document.createTextNode(q.type === "binary" ? yesNoLabel(val) : helpFreqLabel(val)));
-      cont.appendChild(lab);
+      }
     });
-
-    tdYour.appendChild(cont);
-    row.appendChild(tdYour);
+    row.appendChild(tdRating);
 
     tbody.appendChild(row);
   }
 
   function addParticipatedRow(tbody, numberText) {
     const anyDidOrListened = (timers[0] > 0) || (timers[1] > 0);
-    const autoVal = anyDidOrListened ? 1 : 0;
+    const autoVal = anyDidOrListened ? 1 : 0; // 1=Yes, 0=No
 
     const row = document.createElement("tr");
 
@@ -526,27 +551,12 @@
     tdTime.textContent = "";
     row.appendChild(tdTime);
 
-    const tdAuto = document.createElement("td");
-    tdAuto.textContent = yesNoLabel(autoVal);
-    row.appendChild(tdAuto);
-
-    const tdYour = document.createElement("td");
-    const groupName = "participatedRate";
-    const cont = document.createElement("div");
-    cont.className = "rating-group";
-    [0,1].forEach(val => {
-      const lab = document.createElement("label");
-      const inp = document.createElement("input");
-      inp.type = "radio";
-      inp.name = groupName;
-      inp.value = String(val);
-      if (val === autoVal) inp.checked = true;
-      lab.appendChild(inp);
-      lab.appendChild(document.createTextNode(yesNoLabel(val)));
-      cont.appendChild(lab);
+    const tdRating = buildRatingCell({
+      options: [0,1],
+      autoValue: autoVal,
+      labelFor: yesNoLabel
     });
-    tdYour.appendChild(cont);
-    row.appendChild(tdYour);
+    row.appendChild(tdRating);
 
     tbody.appendChild(row);
   }
@@ -571,18 +581,18 @@
     tbody.innerHTML = "";
 
     // Numbered exactly as requested
-    addParticipatedRow(tbody, "1");                            // 1) Participated
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q1"), "2");  // 2) Tried to leave
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q2"), "3");  // 3) Left
-    addBehaviorRow(tbody, 0, "4",  "DID / COMMENTED");                // 4
-    addBehaviorRow(tbody, 1, "5",  "LISTENED / WATCHED");             // 5
-    addBehaviorRow(tbody, 2, "6",  "DID OTHER");                       // 6
-    addBehaviorRow(tbody, 3, "7",  "SLEPT");                           // 7
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q8"), "8"); // 8) Pleasure
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q9"), "9"); // 9) Anxiety
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10"), "10");   // 10) Helped
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10a"), "10a"); // 10a) Helped Frequency
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q11"), "12");   // 12) Inappropriate Behavior (skips 11 as requested sequence ends 10, 10a, 11, 12 cumulatively)
+    addParticipatedRow(tbody, "1");                                 // 1) Participated
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q1"), "2");   // 2) Tried to leave
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q2"), "3");   // 3) Left
+    addBehaviorRow(tbody, 0, "4",  "DID / COMMENTED");                   // 4
+    addBehaviorRow(tbody, 1, "5",  "LISTENED / WATCHED");                // 5
+    addBehaviorRow(tbody, 2, "6",  "DID OTHER");                          // 6
+    addBehaviorRow(tbody, 3, "7",  "SLEPT");                              // 7
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q8"), "8");    // 8) Pleasure
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q9"), "9");    // 9) Anxiety
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10"), "10");  // 10) Helped
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10a"), "10a");// 10a) Helped Frequency
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q11"), "12");  // 12) Inappropriate Behavior
 
     document.getElementById("summary").style.display = "block";
     window.scrollTo({ top: document.getElementById("summary").offsetTop - 10, behavior: "smooth" });
@@ -599,3 +609,4 @@
   </script>
 </body>
 </html>
+
