@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -110,7 +109,7 @@
       border-radius: 12px;
       overflow: hidden;
     }
-    /* Info table can stay centered */
+    /* Info table stays centered */
     .info-table th, .info-table td {
       border: 1px solid #ccc;
       padding: 8px;
@@ -122,7 +121,7 @@
     .summary-table th, .summary-table td {
       border: 1px solid #ccc;
       padding: 8px;
-      text-align: left; /* left-justified */
+      text-align: left;
     }
     .summary-table th { background-color: #f0f0f0; }
 
@@ -150,9 +149,9 @@
       font-weight: 500;
     }
 
-    /* When user changes rating from the auto value, color turns red */
-    .rating-cell.changed { color: #c62828; }
-    .rating-cell.changed input[type="radio"] { accent-color: #c62828; }
+    /* Only the user-chosen radio/label turns red (when changed from auto) */
+    .rating-label.selected { color: #c62828; font-weight: 600; }
+    .rating-input.selected { accent-color: #c62828; }
 
     .selected-label {
       font-weight: 600;
@@ -316,7 +315,7 @@
       <tbody id="combined-body"></tbody>
     </table>
 
-    <div class="footer-note">Change any rating below if needed. If you change it, the text and radios turn red.</div>
+    <div class="footer-note">Change any rating below if needed. If you change it, only the chosen option turns red, and any previously changed row reverts to its auto value.</div>
   </div>
 
   <script>
@@ -335,6 +334,9 @@
   let sessionEndAt = null;
 
   const labels = ["DID / COMMENTED", "LISTENED / WATCHED", "DID OTHER", "SLEPT"];
+
+  // Track the last summary rating cell the user changed
+  let lastChangedCell = null;
 
   // Question defs (original radios above)
   const questionDefs = [
@@ -438,13 +440,15 @@
 
     const defaultRadios = document.querySelectorAll("input[type='radio'][value='0']");
     defaultRadios.forEach(r => r.checked = true);
+    lastChangedCell = null;
   }
 
   // ----- Rating cell builder -----
-  function buildRatingCell({ options, autoValue, labelFor, onChange }) {
+  function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
     const td = document.createElement("td");
     const container = document.createElement("div");
     container.className = "rating-cell";
+    container.dataset.autoValue = String(autoValue);
 
     // Selected label display
     const selected = document.createElement("div");
@@ -455,27 +459,73 @@
     // Radios
     const group = document.createElement("div");
     group.className = "rating-group";
+
+    // keep refs so we can reset styles/selection
+    const inputs = [];
+    const labels = [];
+
+    function clearRedStyles() {
+      inputs.forEach(inp => inp.classList.remove("selected"));
+      labels.forEach(lab => lab.classList.remove("selected"));
+    }
+
+    function setToAuto() {
+      const a = container.dataset.autoValue;
+      // check the auto radio
+      inputs.forEach(inp => { inp.checked = (inp.value === a); });
+      // update label text
+      selected.textContent = labelFor(a);
+      // clear red styles
+      clearRedStyles();
+      // sync original radios if needed
+      if (typeof onReset === "function") onReset(a);
+    }
+
     options.forEach(val => {
       const lab = document.createElement("label");
+      lab.className = "rating-label";
       const inp = document.createElement("input");
       inp.type = "radio";
-      inp.name = Math.random().toString(36).slice(2); // unique name per cell
+      inp.className = "rating-input";
+      inp.name = Math.random().toString(36).slice(2); // unique per cell
       inp.value = String(val);
       if (String(val) === String(autoValue)) inp.checked = true;
 
       inp.addEventListener("change", () => {
-        // Update selected label
+        // If another cell was previously changed, revert it to auto
+        if (lastChangedCell && lastChangedCell !== container) {
+          const reset = lastChangedCell._resetToAuto;
+          if (typeof reset === "function") reset();
+        }
+
+        // Update this cell’s selected label
         selected.textContent = labelFor(val);
-        // Mark changed if different from auto
-        const changed = String(val) !== String(autoValue);
-        container.classList.toggle("changed", changed);
+
+        // Red styling only for the newly chosen option if it differs from auto
+        clearRedStyles();
+        if (String(val) !== String(container.dataset.autoValue)) {
+          inp.classList.add("selected");
+          lab.classList.add("selected");
+          lastChangedCell = container;
+        } else {
+          // chosen equals auto -> no "active edit" for this cell
+          if (lastChangedCell === container) lastChangedCell = null;
+        }
+
+        // Sync back to original radios if needed
         if (typeof onChange === "function") onChange(val);
       });
 
       lab.appendChild(inp);
       lab.appendChild(document.createTextNode(labelFor(val)));
       group.appendChild(lab);
+
+      inputs.push(inp);
+      labels.push(lab);
     });
+
+    // expose a reset function on the container (used when a new cell is edited)
+    container._resetToAuto = setToAuto;
 
     container.appendChild(group);
     td.appendChild(container);
@@ -522,7 +572,6 @@
     tdTime.textContent = ""; // blank per request
     row.appendChild(tdTime);
 
-    // Rating cell (0/1 for binary; 0/1/2 for trinary) that also syncs back to original radios
     const opts = q.type === "binary" ? [0,1] : [0,1,2];
     const tdRating = buildRatingCell({
       options: opts,
@@ -531,6 +580,10 @@
       onChange: (val) => {
         const original = document.querySelector(`input[name='${q.name}'][value='${val}']`);
         if (original) original.checked = true;
+      },
+      onReset: (auto) => {
+        const originalAuto = document.querySelector(`input[name='${q.name}'][value='${auto}']`);
+        if (originalAuto) originalAuto.checked = true;
       }
     });
     row.appendChild(tdRating);
