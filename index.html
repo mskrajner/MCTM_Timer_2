@@ -442,95 +442,92 @@
     defaultRadios.forEach(r => r.checked = true);
     lastChangedCell = null;
   }
+function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
+  const td = document.createElement("td");
+  const container = document.createElement("div");
+  container.className = "rating-cell";
+  container.dataset.autoValue = String(autoValue);
 
-  // ----- Rating cell builder -----
-  function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
-    const td = document.createElement("td");
-    const container = document.createElement("div");
-    container.className = "rating-cell";
-    container.dataset.autoValue = String(autoValue);
+  // Selected label display
+  const selected = document.createElement("div");
+  selected.className = "selected-label";
+  selected.textContent = labelFor(autoValue);
+  container.appendChild(selected);
 
-    // Selected label display
-    const selected = document.createElement("div");
-    selected.className = "selected-label";
-    selected.textContent = labelFor(autoValue);
-    container.appendChild(selected);
+  // Radios container
+  const group = document.createElement("div");
+  group.className = "rating-group";
 
-    // Radios
-    const group = document.createElement("div");
-    group.className = "rating-group";
+  // 🔧 One shared radio name per cell (this is the key fix)
+  const groupName = "rg-" + Math.random().toString(36).slice(2);
 
-    // keep refs so we can reset styles/selection
-    const inputs = [];
-    const labels = [];
+  // keep refs so we can reset styles/selection
+  const inputs = [];
+  const labels = [];
 
-    function clearRedStyles() {
-      inputs.forEach(inp => inp.classList.remove("selected"));
-      labels.forEach(lab => lab.classList.remove("selected"));
-    }
+  function clearRedStyles() {
+    inputs.forEach(inp => inp.classList.remove("selected"));
+    labels.forEach(lab => lab.classList.remove("selected"));
+  }
 
-    function setToAuto() {
-      const a = container.dataset.autoValue;
-      // check the auto radio
-      inputs.forEach(inp => { inp.checked = (inp.value === a); });
-      // update label text
-      selected.textContent = labelFor(a);
-      // clear red styles
+  function setToAuto() {
+    const a = container.dataset.autoValue;
+    inputs.forEach(inp => { inp.checked = (inp.value === a); });
+    selected.textContent = labelFor(a);
+    clearRedStyles();
+    if (typeof onReset === "function") onReset(a);
+  }
+
+  options.forEach(val => {
+    const lab = document.createElement("label");
+    lab.className = "rating-label";
+
+    const inp = document.createElement("input");
+    inp.type = "radio";
+    inp.className = "rating-input";
+    inp.name = groupName;                 // <-- same name for all options in this cell
+    inp.value = String(val);
+    if (String(val) === String(autoValue)) inp.checked = true;
+
+    inp.addEventListener("change", () => {
+      // If another cell was previously changed, revert it to auto
+      if (window.lastChangedCell && window.lastChangedCell !== container) {
+        const reset = window.lastChangedCell._resetToAuto;
+        if (typeof reset === "function") reset();
+      }
+
+      // Update selected label
+      selected.textContent = labelFor(val);
+
+      // Red styling only if changed from auto
       clearRedStyles();
-      // sync original radios if needed
-      if (typeof onReset === "function") onReset(a);
-    }
+      if (String(val) !== String(container.dataset.autoValue)) {
+        inp.classList.add("selected");
+        lab.classList.add("selected");
+        window.lastChangedCell = container;
+      } else if (window.lastChangedCell === container) {
+        window.lastChangedCell = null;
+      }
 
-    options.forEach(val => {
-      const lab = document.createElement("label");
-      lab.className = "rating-label";
-      const inp = document.createElement("input");
-      inp.type = "radio";
-      inp.className = "rating-input";
-      inp.name = Math.random().toString(36).slice(2); // unique per cell
-      inp.value = String(val);
-      if (String(val) === String(autoValue)) inp.checked = true;
-
-      inp.addEventListener("change", () => {
-        // If another cell was previously changed, revert it to auto
-        if (lastChangedCell && lastChangedCell !== container) {
-          const reset = lastChangedCell._resetToAuto;
-          if (typeof reset === "function") reset();
-        }
-
-        // Update this cell’s selected label
-        selected.textContent = labelFor(val);
-
-        // Red styling only for the newly chosen option if it differs from auto
-        clearRedStyles();
-        if (String(val) !== String(container.dataset.autoValue)) {
-          inp.classList.add("selected");
-          lab.classList.add("selected");
-          lastChangedCell = container;
-        } else {
-          // chosen equals auto -> no "active edit" for this cell
-          if (lastChangedCell === container) lastChangedCell = null;
-        }
-
-        // Sync back to original radios if needed
-        if (typeof onChange === "function") onChange(val);
-      });
-
-      lab.appendChild(inp);
-      lab.appendChild(document.createTextNode(labelFor(val)));
-      group.appendChild(lab);
-
-      inputs.push(inp);
-      labels.push(lab);
+      if (typeof onChange === "function") onChange(val);
     });
 
-    // expose a reset function on the container (used when a new cell is edited)
-    container._resetToAuto = setToAuto;
+    lab.appendChild(inp);
+    lab.appendChild(document.createTextNode(labelFor(val)));
+    group.appendChild(lab);
 
-    container.appendChild(group);
-    td.appendChild(container);
-    return td;
-  }
+    inputs.push(inp);
+    labels.push(lab);
+  });
+
+  // expose a reset function
+  container._resetToAuto = setToAuto;
+
+  container.appendChild(group);
+  td.appendChild(container);
+  return td;
+}
+
 
   // ----- Row builders (with custom numbering text) -----
   function addBehaviorRow(tbody, idx, numberText, label) {
