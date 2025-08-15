@@ -315,6 +315,16 @@
       <tbody id="combined-body"></tbody>
     </table>
 
+    <!-- Comments section -->
+    <div style="max-width:800px;margin:12px auto;">
+      <label for="summary-comments" style="font-weight:600;display:block;margin-bottom:6px;">
+        Comments / Notes:
+      </label>
+      <textarea id="summary-comments"
+        style="width:100%;min-height:80px;padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;resize:vertical;"
+        placeholder="Type any additional observations or notes here..."></textarea>
+    </div>
+
     <div class="footer-note">Change any rating below if needed. If you change it, only the chosen option turns red, and any previously changed row reverts to its auto value.</div>
   </div>
 
@@ -442,92 +452,84 @@
     defaultRadios.forEach(r => r.checked = true);
     lastChangedCell = null;
   }
-function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
-  const td = document.createElement("td");
-  const container = document.createElement("div");
-  container.className = "rating-cell";
-  container.dataset.autoValue = String(autoValue);
 
-  // Selected label display
-  const selected = document.createElement("div");
-  selected.className = "selected-label";
-  selected.textContent = labelFor(autoValue);
-  container.appendChild(selected);
+  function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
+    const td = document.createElement("td");
+    const container = document.createElement("div");
+    container.className = "rating-cell";
+    container.dataset.autoValue = String(autoValue);
 
-  // Radios container
-  const group = document.createElement("div");
-  group.className = "rating-group";
+    const selected = document.createElement("div");
+    selected.className = "selected-label";
+    selected.textContent = labelFor(autoValue);
+    container.appendChild(selected);
 
-  // 🔧 One shared radio name per cell (this is the key fix)
-  const groupName = "rg-" + Math.random().toString(36).slice(2);
+    const group = document.createElement("div");
+    group.className = "rating-group";
 
-  // keep refs so we can reset styles/selection
-  const inputs = [];
-  const labels = [];
+    const groupName = "rg-" + Math.random().toString(36).slice(2);
 
-  function clearRedStyles() {
-    inputs.forEach(inp => inp.classList.remove("selected"));
-    labels.forEach(lab => lab.classList.remove("selected"));
-  }
+    const inputs = [];
+    const labels = [];
 
-  function setToAuto() {
-    const a = container.dataset.autoValue;
-    inputs.forEach(inp => { inp.checked = (inp.value === a); });
-    selected.textContent = labelFor(a);
-    clearRedStyles();
-    if (typeof onReset === "function") onReset(a);
-  }
+    function clearRedStyles() {
+      inputs.forEach(inp => inp.classList.remove("selected"));
+      labels.forEach(lab => lab.classList.remove("selected"));
+    }
 
-  options.forEach(val => {
-    const lab = document.createElement("label");
-    lab.className = "rating-label";
-
-    const inp = document.createElement("input");
-    inp.type = "radio";
-    inp.className = "rating-input";
-    inp.name = groupName;                 // <-- same name for all options in this cell
-    inp.value = String(val);
-    if (String(val) === String(autoValue)) inp.checked = true;
-
-    inp.addEventListener("change", () => {
-      // If another cell was previously changed, revert it to auto
-      if (window.lastChangedCell && window.lastChangedCell !== container) {
-        const reset = window.lastChangedCell._resetToAuto;
-        if (typeof reset === "function") reset();
-      }
-
-      // Update selected label
-      selected.textContent = labelFor(val);
-
-      // Red styling only if changed from auto
+    function setToAuto() {
+      const a = container.dataset.autoValue;
+      inputs.forEach(inp => { inp.checked = (inp.value === a); });
+      selected.textContent = labelFor(a);
       clearRedStyles();
-      if (String(val) !== String(container.dataset.autoValue)) {
-        inp.classList.add("selected");
-        lab.classList.add("selected");
-        window.lastChangedCell = container;
-      } else if (window.lastChangedCell === container) {
-        window.lastChangedCell = null;
-      }
+      if (typeof onReset === "function") onReset(a);
+    }
 
-      if (typeof onChange === "function") onChange(val);
+    options.forEach(val => {
+      const lab = document.createElement("label");
+      lab.className = "rating-label";
+
+      const inp = document.createElement("input");
+      inp.type = "radio";
+      inp.className = "rating-input";
+      inp.name = groupName;
+      inp.value = String(val);
+      if (String(val) === String(autoValue)) inp.checked = true;
+
+      inp.addEventListener("change", () => {
+        if (window.lastChangedCell && window.lastChangedCell !== container) {
+          const reset = window.lastChangedCell._resetToAuto;
+          if (typeof reset === "function") reset();
+        }
+
+        selected.textContent = labelFor(val);
+
+        clearRedStyles();
+        if (String(val) !== String(container.dataset.autoValue)) {
+          inp.classList.add("selected");
+          lab.classList.add("selected");
+          window.lastChangedCell = container;
+        } else if (window.lastChangedCell === container) {
+          window.lastChangedCell = null;
+        }
+
+        if (typeof onChange === "function") onChange(val);
+      });
+
+      lab.appendChild(inp);
+      lab.appendChild(document.createTextNode(labelFor(val)));
+      group.appendChild(lab);
+
+      inputs.push(inp);
+      labels.push(lab);
     });
 
-    lab.appendChild(inp);
-    lab.appendChild(document.createTextNode(labelFor(val)));
-    group.appendChild(lab);
+    container._resetToAuto = setToAuto;
 
-    inputs.push(inp);
-    labels.push(lab);
-  });
-
-  // expose a reset function
-  container._resetToAuto = setToAuto;
-
-  container.appendChild(group);
-  td.appendChild(container);
-  return td;
-}
-
+    container.appendChild(group);
+    td.appendChild(container);
+    return td;
+  }
 
   // ----- Row builders (with custom numbering text) -----
   function addBehaviorRow(tbody, idx, numberText, label) {
@@ -544,12 +546,10 @@ function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
     tdTime.textContent = exact.toFixed(2);
     row.appendChild(tdTime);
 
-    // Rating cell (0/1/2), auto = autoCode
     const tdRating = buildRatingCell({
       options: [0,1,2],
       autoValue: autoCode,
       labelFor: ratingCodeToLabel
-      // no external sync needed for behaviors
     });
     row.appendChild(tdRating);
 
@@ -566,7 +566,7 @@ function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
     row.appendChild(tdCat);
 
     const tdTime = document.createElement("td");
-    tdTime.textContent = ""; // blank per request
+    tdTime.textContent = "";
     row.appendChild(tdTime);
 
     const opts = q.type === "binary" ? [0,1] : [0,1,2];
@@ -590,7 +590,7 @@ function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
 
   function addParticipatedRow(tbody, numberText) {
     const anyDidOrListened = (timers[0] > 0) || (timers[1] > 0);
-    const autoVal = anyDidOrListened ? 1 : 0; // 1=Yes, 0=No
+    const autoVal = anyDidOrListened ? 1 : 0;
 
     const row = document.createElement("tr");
 
@@ -631,19 +631,18 @@ function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
     const tbody = document.getElementById("combined-body");
     tbody.innerHTML = "";
 
-    // Numbered exactly as requested
     addParticipatedRow(tbody, "1");                                 // 1) Participated
     addQuestionRow(tbody, questionDefs.find(q => q.name==="q1"), "2");   // 2) Tried to leave
     addQuestionRow(tbody, questionDefs.find(q => q.name==="q2"), "3");   // 3) Left
     addBehaviorRow(tbody, 0, "4",  "DID / COMMENTED");                   // 4
     addBehaviorRow(tbody, 1, "5",  "LISTENED / WATCHED");                // 5
-    addBehaviorRow(tbody, 2, "6",  "DID OTHER");                          // 6
-    addBehaviorRow(tbody, 3, "7",  "SLEPT");                              // 7
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q8"), "8");    // 8) Pleasure
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q9"), "9");    // 9) Anxiety
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10"), "10");  // 10) Helped
+    addBehaviorRow(tbody, 2, "6",  "DID OTHER");                         // 6
+    addBehaviorRow(tbody, 3, "7",  "SLEPT");                             // 7
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q8"), "8");   // 8) Pleasure
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q9"), "9");   // 9) Anxiety
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10"), "10"); // 10) Helped
     addQuestionRow(tbody, questionDefs.find(q => q.name==="q10a"), "10a");// 10a) Helped Frequency
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q11"), "12");  // 12) Inappropriate Behavior
+    addQuestionRow(tbody, questionDefs.find(q => q.name==="q11"), "12"); // 12) Inappropriate Behavior
 
     document.getElementById("summary").style.display = "block";
     window.scrollTo({ top: document.getElementById("summary").offsetTop - 10, behavior: "smooth" });
