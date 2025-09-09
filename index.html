@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MPES Timer (Version 2025-08-13)</title>
+  <title>MPES Timer MCTM (Version 9.9.25 at 9.57am)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,25 +12,20 @@
       background-color: #f9f9f9;
     }
     h1 { margin-bottom: 12px; }
+
+    /* Top controls */
     .top-controls {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 12px;
       align-items: end;
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto 8px;
       text-align: left;
     }
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    input[type="text"], input[type="date"] {
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    input[type="text"], input[type="date"], select {
+      padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px;
     }
     label { font-weight: 600; }
 
@@ -39,6 +34,7 @@
       margin: 15px 0;
     }
 
+    /* Timer grid */
     .timer-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -56,10 +52,8 @@
       box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
     }
     .timer-box h3 { margin-top: 0; }
-    .timer-box.active {
-      background-color: #4CAF50;
-      color: white;
-    }
+    .timer-box.active { background-color: #4CAF50; color: white; }
+
     .start-button, .stop-button, .reset-button {
       margin: 8px;
       padding: 8px 16px;
@@ -72,9 +66,17 @@
     .stop-button { background-color: #f44336; color: white; }
     .reset-button { background-color: #9e9e9e; color: white; }
 
+    /* Force 2×2 layout on small screens, with slightly smaller boxes */
+    @media (max-width: 620px) {
+      .timer-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .timer-box { padding: 10px; border-radius: 12px; }
+      .timer-box h3 { font-size: 14px; }
+      .start-button { width: 100%; padding: 6px 10px; font-size: 14px; }
+    }
+
+    /* Matrix table */
     .matrix {
-      margin-top: 24px;
-      width: 100%;
+      margin-top: 24px; width: 100%;
     }
     .matrix table {
       margin: 0 auto;
@@ -86,9 +88,7 @@
       overflow: hidden;
     }
     .matrix td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: left;
+      padding: 10px; border: 1px solid #ccc; text-align: left;
     }
     .matrix tr:nth-child(even) { background-color: #f6f6f6; }
 
@@ -98,6 +98,7 @@
       max-width: 1000px;
       margin: 24px auto;
       text-align: left;
+      display: none;
     }
     .summary-section h2 { text-align: center; }
 
@@ -109,68 +110,34 @@
       border-radius: 12px;
       overflow: hidden;
     }
-    /* Info table stays centered */
     .info-table th, .info-table td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
+      border: 1px solid #ccc; padding: 8px; text-align: center;
     }
     .info-table th { background-color: #f0f0f0; }
 
-    /* SUMMARY TABLE: left-justify all cells */
     .summary-table th, .summary-table td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
+      border: 1px solid #ccc; padding: 8px; text-align: left;
     }
     .summary-table th { background-color: #f0f0f0; }
 
     .legend {
-      max-width: 1000px;
-      margin: 0 auto 14px;
-      font-size: 14px;
-      color: #333;
-      background: #fff;
-      padding: 10px 14px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
+      max-width: 1000px; margin: 0 auto 14px; font-size: 14px; color: #333;
+      background: #fff; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;
     }
-
     .rating-group {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-start; /* left-align radio group */
-      flex-wrap: wrap;
+      display: flex; gap: 10px; justify-content: flex-start; flex-wrap: wrap;
     }
-    .rating-group label {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: 500;
-    }
-
-    /* Only the user-chosen radio/label turns red (when changed from auto) */
+    .rating-group label { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
     .rating-label.selected { color: #c62828; font-weight: 600; }
     .rating-input.selected { accent-color: #c62828; }
-
-    .selected-label {
-      font-weight: 600;
-      margin-bottom: 6px;
-      display: inline-block;
-    }
-
-    .footer-note {
-      font-size: 12px;
-      color: #666;
-      text-align: center;
-      margin-bottom: 24px;
-    }
+    .selected-label { font-weight: 600; margin-bottom: 6px; display: inline-block; }
+    .footer-note { font-size: 12px; color: #666; text-align: center; margin-bottom: 24px; }
   </style>
 </head>
 <body>
-  <h1>MPES Timer (Version 2025-08-13)</h1>
+  <h1>MPES Timer MCTM (Version 9.9.25 at 9.57am)</h1>
 
-  <!-- Top controls: Participant ID, Date (auto-filled), Global display -->
+  <!-- Top controls: Participant ID, Date, Duration, Global display -->
   <div class="top-controls">
     <div class="field">
       <label for="participant-id">Participant ID</label>
@@ -179,6 +146,16 @@
     <div class="field">
       <label for="session-date">Session Date</label>
       <input id="session-date" type="date" />
+    </div>
+    <div class="field">
+      <label for="duration-select">Timer Duration</label>
+      <select id="duration-select" aria-label="Timer duration">
+        <option value="60">1 Minute</option>
+        <option value="120">2 Minutes</option>
+        <option value="180">3 Minutes</option>
+        <option value="240" selected>4 Minutes</option>
+        <option value="300">5 Minutes</option>
+      </select>
     </div>
     <div class="field">
       <label>Global Timer</label>
@@ -210,7 +187,7 @@
     </div>
   </div>
 
-  <!-- Binary/ordinal questions (original form) -->
+  <!-- Binary/ordinal questions -->
   <div class="matrix">
     <table>
       <tr>
@@ -272,7 +249,7 @@
   </div>
 
   <!-- Summary -->
-  <div id="summary" class="summary-section" style="display:none;">
+  <div id="summary" class="summary-section">
     <h2>Summary</h2>
 
     <div class="legend">
@@ -329,333 +306,370 @@
   </div>
 
   <script>
-  // ----- Constants -----
-  const DURATION_SECONDS = 240; // fixed 4 minutes
+    /* =======================
+       iOS/Mac-accurate timing
+       ======================= */
+    const labels = ["DID / COMMENTED", "LISTENED / WATCHED", "DID OTHER", "SLEPT"];
 
-  // ----- State -----
-  let timers = [0, 0, 0, 0];
-  let intervals = [null, null, null, null];
-  let globalTime = 0;
-  let globalInterval = null;
-  let currentActive = null;
+    // Category timers: {accum: seconds, start: performance timestamp or null}
+    const timers = labels.map(() => ({ accum: 0, start: null }));
+    // Global timer
+    const globalTimer = { accum: 0, start: null };
 
-  // Track start/end times automatically
-  let sessionStartAt = null;
-  let sessionEndAt = null;
+    let currentActive = null;        // active category index, or null
+    let rafId = null;                // requestAnimationFrame id
+    let sessionStartAt = null;       // Date
+    let sessionEndAt = null;         // Date
+    let lastChangedCell = null;      // for summary red-highlight behavior
 
-  const labels = ["DID / COMMENTED", "LISTENED / WATCHED", "DID OTHER", "SLEPT"];
+    const durationSel = document.getElementById('duration-select');
 
-  // Track the last summary rating cell the user changed
-  let lastChangedCell = null;
+    // DOM refs
+    const globalEl = document.getElementById('global-timer');
+    const summaryEl = document.getElementById('summary');
+    const summaryBody = document.getElementById('combined-body');
 
-  // Question defs (original radios above)
-  const questionDefs = [
-    { name: "q1",  label: "Tried to Leave",          type: "binary" },
-    { name: "q2",  label: "Left",                    type: "binary" },
-    { name: "q8",  label: "Pleasure",                type: "binary" },
-    { name: "q9",  label: "Anxiety",                 type: "binary" },
-    { name: "q10", label: "Helped",                  type: "binary" },
-    { name: "q10a",label: "Helped Frequency",        type: "trinary" },
-    { name: "q11", label: "Inappropriate Behavior",  type: "binary" },
-  ];
+    // Utility: high-resolution monotonic time (seconds)
+    const nowSec = () => performance.now() / 1000;
 
-  // ----- Utils -----
-  function setTodayToDateInput(input) {
-    const now = new Date();
-    const tzoffset = now.getTimezoneOffset() * 60000;
-    const local = new Date(now - tzoffset).toISOString().slice(0,10);
-    input.value = local;
-  }
-
-  function formatSecs(s) { return s.toFixed(2) + 's'; }
-
-  function proportionToAutoCode(part, total) {
-    if (total <= 0) return 0;
-    if (part === 0) return 0;
-    if (part <= total / 2) return 1;
-    return 2;
-  }
-
-  function ratingCodeToLabel(code) {
-    switch (Number(code)) {
-      case 0: return "0 (Not at all)";
-      case 1: return "1 (Up to half)";
-      case 2: return "2 (More than half)";
-      default: return String(code);
+    // Compute elapsed seconds for a timer-like object
+    function getElapsed(t) {
+      return t.start == null ? t.accum : t.accum + (nowSec() - t.start);
     }
-  }
 
-  function yesNoLabel(code) { return Number(code) === 1 ? "1 (Yes)" : "0 (No)"; }
-  function helpFreqLabel(code) {
-    if (Number(code) === 0) return "0 (0 times)";
-    if (Number(code) === 1) return "1 (1–2 times)";
-    return "2 (3+ times)";
-  }
-  function formatTimeHMSS(d) {
-    if (!d) return "—";
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  }
-
-  // ----- Display Updates -----
-  function updateDisplay() {
-    for (let i = 0; i < 4; i++) {
-      document.getElementById(`timer${i}`).innerText = formatSecs(timers[i]);
-      document.getElementById(`box${i}`).classList.toggle('active', currentActive === i);
+    function getTargetDuration() {
+      const v = parseInt(durationSel.value || '240', 10);
+      if (Number.isFinite(v)) return v;
+      return 240; // default to 4 minutes
     }
-    document.getElementById('global-timer').innerText = formatSecs(globalTime);
-  }
 
-  // ----- Timer Controls -----
-  function startTimer(index) {
-    if (!sessionStartAt) sessionStartAt = new Date();
-
-    stopAllTimers();
-    if (!globalInterval) {
-      globalInterval = setInterval(() => {
-        globalTime = Math.min(globalTime + 0.01, DURATION_SECONDS);
-        updateDisplay();
-        if (globalTime >= DURATION_SECONDS) {
-          stopAllTimers();
-          clearInterval(globalInterval);
-          globalInterval = null;
-          if (!sessionEndAt) sessionEndAt = new Date();
-        }
-      }, 10);
+    function formatSecs(s) { return s.toFixed(2) + 's'; }
+    function formatTimeHMSS(d) {
+      if (!d) return "—";
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     }
-    currentActive = index;
-    intervals[index] = setInterval(() => {
-      timers[index] += 0.01;
+
+    // Display update
+    function updateDisplay() {
+      for (let i = 0; i < 4; i++) {
+        const sec = getElapsed(timers[i]);
+        document.getElementById(`timer${i}`).textContent = formatSecs(sec);
+        document.getElementById(`box${i}`).classList.toggle('active', currentActive === i);
+      }
+      const g = getElapsed(globalTimer);
+      globalEl.textContent = formatSecs(g);
+    }
+
+    // Start a category
+    function startTimer(index) {
+      if (!sessionStartAt) sessionStartAt = new Date();
+
+      // Start global loop if not running
+      if (globalTimer.start == null) {
+        globalTimer.start = nowSec();
+        tick();
+      }
+
+      // Pause any currently active category
+      if (currentActive !== null && timers[currentActive].start != null) {
+        pauseCategory(currentActive);
+      }
+
+      // Start new active category
+      currentActive = index;
+      if (timers[index].start == null) timers[index].start = nowSec();
+
+      // Hide summary if restarting
+      if (summaryEl.style.display !== "none") summaryEl.style.display = "none";
+
       updateDisplay();
-    }, 10);
-  }
-
-  function stopAllTimers() {
-    for (let i = 0; i < intervals.length; i++) {
-      clearInterval(intervals[i]);
-      intervals[i] = null;
-    }
-    currentActive = null;
-  }
-
-  function resetAllTimers() {
-    stopAllTimers();
-    if (globalInterval) clearInterval(globalInterval);
-    globalInterval = null;
-    timers = [0, 0, 0, 0];
-    globalTime = 0;
-    sessionStartAt = null;
-    sessionEndAt = null;
-    updateDisplay();
-    document.getElementById("summary").style.display = "none";
-
-    const defaultRadios = document.querySelectorAll("input[type='radio'][value='0']");
-    defaultRadios.forEach(r => r.checked = true);
-    lastChangedCell = null;
-  }
-
-  function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
-    const td = document.createElement("td");
-    const container = document.createElement("div");
-    container.className = "rating-cell";
-    container.dataset.autoValue = String(autoValue);
-
-    const selected = document.createElement("div");
-    selected.className = "selected-label";
-    selected.textContent = labelFor(autoValue);
-    container.appendChild(selected);
-
-    const group = document.createElement("div");
-    group.className = "rating-group";
-
-    const groupName = "rg-" + Math.random().toString(36).slice(2);
-
-    const inputs = [];
-    const labels = [];
-
-    function clearRedStyles() {
-      inputs.forEach(inp => inp.classList.remove("selected"));
-      labels.forEach(lab => lab.classList.remove("selected"));
     }
 
-    function setToAuto() {
-      const a = container.dataset.autoValue;
-      inputs.forEach(inp => { inp.checked = (inp.value === a); });
-      selected.textContent = labelFor(a);
-      clearRedStyles();
-      if (typeof onReset === "function") onReset(a);
+    function pauseCategory(index) {
+      const t = timers[index];
+      if (t.start != null) {
+        t.accum += (nowSec() - t.start);
+        t.start = null;
+      }
     }
 
-    options.forEach(val => {
-      const lab = document.createElement("label");
-      lab.className = "rating-label";
+    function stopAllTimers() {
+      if (currentActive !== null) {
+        pauseCategory(currentActive);
+        currentActive = null;
+      }
+      if (globalTimer.start != null) {
+        globalTimer.accum += (nowSec() - globalTimer.start);
+        globalTimer.start = null;
+      }
+      if (rafId != null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      updateDisplay();
+    }
 
-      const inp = document.createElement("input");
-      inp.type = "radio";
-      inp.className = "rating-input";
-      inp.name = groupName;
-      inp.value = String(val);
-      if (String(val) === String(autoValue)) inp.checked = true;
+    function resetAllTimers() {
+      stopAllTimers();
+      // Reset categories and global
+      timers.forEach(t => { t.accum = 0; t.start = null; });
+      globalTimer.accum = 0; globalTimer.start = null;
 
-      inp.addEventListener("change", () => {
-        if (window.lastChangedCell && window.lastChangedCell !== container) {
-          const reset = window.lastChangedCell._resetToAuto;
-          if (typeof reset === "function") reset();
-        }
+      // Reset session times and UI
+      sessionStartAt = null; sessionEndAt = null;
+      summaryEl.style.display = "none";
+      document.querySelectorAll("input[type='radio'][value='0']").forEach(r => r.checked = true);
+      lastChangedCell = null;
+      updateDisplay();
+    }
 
-        selected.textContent = labelFor(val);
+    // Animation loop (accurate even if frames are delayed)
+    function tick() {
+      if (globalTimer.start == null) { rafId = null; return; }
 
+      const g = getElapsed(globalTimer);
+      updateDisplay();
+
+      // Auto-stop at selected duration
+      if (g >= getTargetDuration()) {
+        stopAllTimers();
+        if (!sessionEndAt) sessionEndAt = new Date();
+        return;
+      }
+
+      rafId = requestAnimationFrame(tick);
+    }
+
+    // ===== Helpers for summary/rating UI =====
+    function proportionToAutoCode(part, total) {
+      if (total <= 0) return 0;
+      if (part === 0) return 0;
+      if (part <= total / 2) return 1;
+      return 2;
+    }
+    function ratingCodeToLabel(code) {
+      switch (Number(code)) {
+        case 0: return "0 (Not at all)";
+        case 1: return "1 (Up to half)";
+        case 2: return "2 (More than half)";
+        default: return String(code);
+      }
+    }
+    function yesNoLabel(code) { return Number(code) === 1 ? "1 (Yes)" : "0 (No)"; }
+    function helpFreqLabel(code) {
+      if (Number(code) === 0) return "0 (0 times)";
+      if (Number(code) === 1) return "1 (1–2 times)";
+      return "2 (3+ times)";
+    }
+
+    function buildRatingCell({ options, autoValue, labelFor, onChange, onReset }) {
+      const td = document.createElement("td");
+      const container = document.createElement("div");
+      container.className = "rating-cell";
+      container.dataset.autoValue = String(autoValue);
+
+      const selected = document.createElement("div");
+      selected.className = "selected-label";
+      selected.textContent = labelFor(autoValue);
+      container.appendChild(selected);
+
+      const group = document.createElement("div");
+      group.className = "rating-group";
+
+      const groupName = "rg-" + Math.random().toString(36).slice(2);
+      const inputs = [];
+      const labelsEls = [];
+
+      function clearRedStyles() {
+        inputs.forEach(inp => inp.classList.remove("selected"));
+        labelsEls.forEach(lab => lab.classList.remove("selected"));
+      }
+
+      function setToAuto() {
+        const a = container.dataset.autoValue;
+        inputs.forEach(inp => { inp.checked = (inp.value === a); });
+        selected.textContent = labelFor(a);
         clearRedStyles();
-        if (String(val) !== String(container.dataset.autoValue)) {
-          inp.classList.add("selected");
-          lab.classList.add("selected");
-          window.lastChangedCell = container;
-        } else if (window.lastChangedCell === container) {
-          window.lastChangedCell = null;
-        }
+        if (typeof onReset === "function") onReset(a);
+      }
 
-        if (typeof onChange === "function") onChange(val);
+      options.forEach(val => {
+        const lab = document.createElement("label");
+        lab.className = "rating-label";
+
+        const inp = document.createElement("input");
+        inp.type = "radio";
+        inp.className = "rating-input";
+        inp.name = groupName;
+        inp.value = String(val);
+        if (String(val) === String(autoValue)) inp.checked = true;
+
+        inp.addEventListener("change", () => {
+          if (window.lastChangedCell && window.lastChangedCell !== container) {
+            const reset = window.lastChangedCell._resetToAuto;
+            if (typeof reset === "function") reset();
+          }
+          selected.textContent = labelFor(val);
+
+          clearRedStyles();
+          if (String(val) !== String(container.dataset.autoValue)) {
+            inp.classList.add("selected");
+            lab.classList.add("selected");
+            window.lastChangedCell = container;
+          } else if (window.lastChangedCell === container) {
+            window.lastChangedCell = null;
+          }
+          if (typeof onChange === "function") onChange(val);
+        });
+
+        lab.appendChild(inp);
+        lab.appendChild(document.createTextNode(labelFor(val)));
+        group.appendChild(lab);
+
+        inputs.push(inp);
+        labelsEls.push(lab);
       });
 
-      lab.appendChild(inp);
-      lab.appendChild(document.createTextNode(labelFor(val)));
-      group.appendChild(lab);
+      container._resetToAuto = setToAuto;
+      container.appendChild(group);
+      td.appendChild(container);
+      return td;
+    }
 
-      inputs.push(inp);
-      labels.push(lab);
-    });
+    // Question defs (binary/trinary)
+    const questionDefs = [
+      { name: "q1",  label: "Tried to Leave",          type: "binary" },
+      { name: "q2",  label: "Left",                    type: "binary" },
+      { name: "q8",  label: "Pleasure",                type: "binary" },
+      { name: "q9",  label: "Anxiety",                 type: "binary" },
+      { name: "q10", label: "Helped",                  type: "binary" },
+      { name: "q10a",label: "Helped Frequency",        type: "trinary" },
+      { name: "q11", label: "Inappropriate Behavior",  type: "binary" },
+    ];
 
-    container._resetToAuto = setToAuto;
+    function addBehaviorRow(tbody, idx, numberText, label) {
+      const exact = getElapsed(timers[idx]);
+      const total = getElapsed(globalTimer);
+      const autoCode = proportionToAutoCode(exact, total);
 
-    container.appendChild(group);
-    td.appendChild(container);
-    return td;
-  }
+      const row = document.createElement("tr");
 
-  // ----- Row builders (with custom numbering text) -----
-  function addBehaviorRow(tbody, idx, numberText, label) {
-    const exact = timers[idx];
-    const autoCode = proportionToAutoCode(exact, globalTime);
+      const tdCat = document.createElement("td");
+      tdCat.textContent = `${numberText}) ${label}`;
+      row.appendChild(tdCat);
 
-    const row = document.createElement("tr");
+      const tdTime = document.createElement("td");
+      tdTime.textContent = exact.toFixed(2);
+      row.appendChild(tdTime);
 
-    const tdCat = document.createElement("td");
-    tdCat.textContent = `${numberText}) ${label}`;
-    row.appendChild(tdCat);
+      const tdRating = buildRatingCell({
+        options: [0,1,2],
+        autoValue: autoCode,
+        labelFor: ratingCodeToLabel
+      });
+      row.appendChild(tdRating);
 
-    const tdTime = document.createElement("td");
-    tdTime.textContent = exact.toFixed(2);
-    row.appendChild(tdTime);
+      tbody.appendChild(row);
+    }
 
-    const tdRating = buildRatingCell({
-      options: [0,1,2],
-      autoValue: autoCode,
-      labelFor: ratingCodeToLabel
-    });
-    row.appendChild(tdRating);
+    function addQuestionRow(tbody, q, numberText) {
+      const autoVal = (document.querySelector(`input[name='${q.name}']:checked`) || { value: "0" }).value;
 
-    tbody.appendChild(row);
-  }
+      const row = document.createElement("tr");
 
-  function addQuestionRow(tbody, q, numberText) {
-    const autoVal = document.querySelector(`input[name='${q.name}']:checked`).value;
+      const tdCat = document.createElement("td");
+      tdCat.textContent = `${numberText}) ${q.label}`;
+      row.appendChild(tdCat);
 
-    const row = document.createElement("tr");
+      const tdTime = document.createElement("td");
+      tdTime.textContent = "";
+      row.appendChild(tdTime);
 
-    const tdCat = document.createElement("td");
-    tdCat.textContent = `${numberText}) ${q.label}`;
-    row.appendChild(tdCat);
+      const opts = q.type === "binary" ? [0,1] : [0,1,2];
+      const tdRating = buildRatingCell({
+        options: opts,
+        autoValue: autoVal,
+        labelFor: (v) => q.type === "binary" ? yesNoLabel(v) : helpFreqLabel(v),
+        onChange: (val) => {
+          const original = document.querySelector(`input[name='${q.name}'][value='${val}']`);
+          if (original) original.checked = true;
+        },
+        onReset: (auto) => {
+          const originalAuto = document.querySelector(`input[name='${q.name}'][value='${auto}']`);
+          if (originalAuto) originalAuto.checked = true;
+        }
+      });
+      row.appendChild(tdRating);
 
-    const tdTime = document.createElement("td");
-    tdTime.textContent = "";
-    row.appendChild(tdTime);
+      tbody.appendChild(row);
+    }
 
-    const opts = q.type === "binary" ? [0,1] : [0,1,2];
-    const tdRating = buildRatingCell({
-      options: opts,
-      autoValue: autoVal,
-      labelFor: (v) => q.type === "binary" ? yesNoLabel(v) : helpFreqLabel(v),
-      onChange: (val) => {
-        const original = document.querySelector(`input[name='${q.name}'][value='${val}']`);
-        if (original) original.checked = true;
-      },
-      onReset: (auto) => {
-        const originalAuto = document.querySelector(`input[name='${q.name}'][value='${auto}']`);
-        if (originalAuto) originalAuto.checked = true;
-      }
-    });
-    row.appendChild(tdRating);
+    function addParticipatedRow(tbody, numberText) {
+      const anyDidOrListened = (getElapsed(timers[0]) > 0) || (getElapsed(timers[1]) > 0);
+      const autoVal = anyDidOrListened ? 1 : 0;
 
-    tbody.appendChild(row);
-  }
+      const row = document.createElement("tr");
 
-  function addParticipatedRow(tbody, numberText) {
-    const anyDidOrListened = (timers[0] > 0) || (timers[1] > 0);
-    const autoVal = anyDidOrListened ? 1 : 0;
+      const tdCat = document.createElement("td");
+      tdCat.textContent = `${numberText}) Participated`;
+      row.appendChild(tdCat);
 
-    const row = document.createElement("tr");
+      const tdTime = document.createElement("td");
+      tdTime.textContent = "";
+      row.appendChild(tdTime);
 
-    const tdCat = document.createElement("td");
-    tdCat.textContent = `${numberText}) Participated`;
-    row.appendChild(tdCat);
+      const tdRating = buildRatingCell({
+        options: [0,1],
+        autoValue: autoVal,
+        labelFor: yesNoLabel
+      });
+      row.appendChild(tdRating);
 
-    const tdTime = document.createElement("td");
-    tdTime.textContent = "";
-    row.appendChild(tdTime);
+      tbody.appendChild(row);
+    }
 
-    const tdRating = buildRatingCell({
-      options: [0,1],
-      autoValue: autoVal,
-      labelFor: yesNoLabel
-    });
-    row.appendChild(tdRating);
+    // Summary
+    function showSummary() {
+      stopAllTimers();
+      sessionEndAt = new Date();
 
-    tbody.appendChild(row);
-  }
+      const pid = document.getElementById("participant-id").value.trim() || "(none entered)";
+      const dateVal = document.getElementById("session-date").value || "(none selected)";
+      document.getElementById("info-id").innerText = pid;
+      document.getElementById("info-date").innerText = dateVal;
+      document.getElementById("info-duration").innerText = formatSecs(getElapsed(globalTimer));
+      document.getElementById("info-start").innerText = formatTimeHMSS(sessionStartAt);
+      document.getElementById("info-end").innerText = formatTimeHMSS(sessionEndAt);
 
-  // ----- Summary Builder -----
-  function showSummary() {
-    stopAllTimers();
-    if (globalInterval) clearInterval(globalInterval);
-    globalInterval = null;
+      summaryBody.innerHTML = "";
 
-    sessionEndAt = new Date();
+      addParticipatedRow(summaryBody, "1");                                 // 1) Participated
+      addQuestionRow(summaryBody, questionDefs.find(q => q.name==="q1"), "2");
+      addQuestionRow(summaryBody, questionDefs.find(q => q.name==="q2"), "3");
+      addBehaviorRow(summaryBody, 0, "4",  "DID / COMMENTED");
+      addBehaviorRow(summaryBody, 1, "5",  "LISTENED / WATCHED");
+      addBehaviorRow(summaryBody, 2, "6",  "DID OTHER");
+      addBehaviorRow(summaryBody, 3, "7",  "SLEPT");
+      addQuestionRow(summaryBody, questionDefs.find(q => q.name==="q8"), "8");
+      addQuestionRow(summaryBody, questionDefs.find(q => q.name==="q9"), "9");
+      addQuestionRow(summaryBody, questionDefs.find(q => q.name==="q10"), "10");
+      addQuestionRow(summaryBody, questionDefs.find(q => q.name==="q10a"), "10a");
+      addQuestionRow(summaryBody, questionDefs.find(q => q.name==="q11"), "12");
 
-    const pid = document.getElementById("participant-id").value.trim() || "(none entered)";
-    const dateVal = document.getElementById("session-date").value || "(none selected)";
-    document.getElementById("info-id").innerText = pid;
-    document.getElementById("info-date").innerText = dateVal;
-    document.getElementById("info-duration").innerText = formatSecs(globalTime);
-    document.getElementById("info-start").innerText = formatTimeHMSS(sessionStartAt);
-    document.getElementById("info-end").innerText = formatTimeHMSS(sessionEndAt);
+      summaryEl.style.display = "block";
+      window.scrollTo({ top: summaryEl.offsetTop - 10, behavior: "smooth" });
+    }
 
-    const tbody = document.getElementById("combined-body");
-    tbody.innerHTML = "";
+    // Init page (set date, paint)
+    (function init() {
+      const dateInput = document.getElementById("session-date");
+      const now = new Date();
+      const tzoffset = now.getTimezoneOffset() * 60000;
+      const local = new Date(now - tzoffset).toISOString().slice(0,10);
+      dateInput.value = local;
 
-    addParticipatedRow(tbody, "1");                                 // 1) Participated
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q1"), "2");   // 2) Tried to leave
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q2"), "3");   // 3) Left
-    addBehaviorRow(tbody, 0, "4",  "DID / COMMENTED");                   // 4
-    addBehaviorRow(tbody, 1, "5",  "LISTENED / WATCHED");                // 5
-    addBehaviorRow(tbody, 2, "6",  "DID OTHER");                         // 6
-    addBehaviorRow(tbody, 3, "7",  "SLEPT");                             // 7
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q8"), "8");   // 8) Pleasure
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q9"), "9");   // 9) Anxiety
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10"), "10"); // 10) Helped
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q10a"), "10a");// 10a) Helped Frequency
-    addQuestionRow(tbody, questionDefs.find(q => q.name==="q11"), "12"); // 12) Inappropriate Behavior
-
-    document.getElementById("summary").style.display = "block";
-    window.scrollTo({ top: document.getElementById("summary").offsetTop - 10, behavior: "smooth" });
-  }
-
-  // ----- Init -----
-  function init() {
-    updateDisplay();
-    const dateInput = document.getElementById("session-date");
-    setTodayToDateInput(dateInput);
-  }
-
-  init();
+      updateDisplay();
+    })();
   </script>
 </body>
 </html>
