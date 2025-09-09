@@ -94,48 +94,76 @@
 
     .actions { margin: 18px 0 8px; }
 
+    /* ===== COMPACT SUMMARY (≈25% shorter) ===== */
     .summary-section {
       max-width: 1000px;
-      margin: 24px auto;
+      margin: 18px auto;             /* was 24px */
       text-align: left;
       display: none;
+      font-size: 14px;               /* down from ~16px */
+      line-height: 1.25;             /* tighter lines */
     }
-    .summary-section h2 { text-align: center; }
-
+    .summary-section h2 {
+      text-align: center;
+      font-size: 18px;               /* smaller heading */
+      margin: 4px 0 8px;             /* tighter spacing */
+    }
     .summary-table, .info-table {
-      margin: 12px auto 24px;
+      margin: 8px auto 16px;         /* was 12px auto 24px */
       border-collapse: collapse;
       width: 100%;
       background: white;
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
+      table-layout: fixed;
     }
-    .info-table th, .info-table td {
-      border: 1px solid #ccc; padding: 8px; text-align: center;
-    }
-    .info-table th { background-color: #f0f0f0; }
-
+    .info-table th, .info-table td,
     .summary-table th, .summary-table td {
-      border: 1px solid #ccc; padding: 8px; text-align: left;
+      border: 1px solid #ccc;
+      padding: 5px 6px;              /* was 8px */
+      font-size: 13px;               /* was inherit (~16) */
+      vertical-align: middle;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .summary-table th { background-color: #f0f0f0; }
+    .info-table th, .summary-table th { background-color: #f0f0f0; }
 
     .legend {
-      max-width: 1000px; margin: 0 auto 14px; font-size: 14px; color: #333;
-      background: #fff; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;
+      max-width: 1000px;
+      margin: 0 auto 8px;            /* was 14px */
+      font-size: 12px;               /* smaller */
+      color: #333;
+      background: #fff;
+      padding: 6px 8px;              /* was 10px 14px */
+      border: 1px solid #ddd;
+      border-radius: 8px;
     }
     .rating-group {
-      display: flex; gap: 10px; justify-content: flex-start; flex-wrap: wrap;
+      display: flex; gap: 6px;       /* tighter gap */
+      justify-content: flex-start; flex-wrap: wrap;
     }
-    .rating-group label { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+    .rating-group label {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-weight: 500; font-size: 13px;
+    }
     .rating-label.selected { color: #c62828; font-weight: 600; }
     .rating-input.selected { accent-color: #c62828; }
-    .selected-label { font-weight: 600; margin-bottom: 6px; display: inline-block; }
-    .footer-note { font-size: 12px; color: #666; text-align: center; margin-bottom: 24px; }
+    .selected-label { font-weight: 600; margin-bottom: 4px; display: inline-block; font-size: 13px; }
+
+    .footer-note {
+      font-size: 11px;               /* smaller */
+      color: #666;
+      text-align: center;
+      margin-bottom: 12px;           /* was 24px */
+    }
+
+    /* Comments box slightly tighter */
+    .summary-comments { min-height: 64px; padding: 6px; font-size: 13px; }
   </style>
 </head>
 <body>
-  <h1>MPES Timer MCTM (Version 9.9.25 at 9.57am)</h1>
+  <h1>MCTM: MPES Timer Condensed Table (Version 9.9.25 at 9.57am)</h1>
 
   <!-- Top controls: Participant ID, Date, Duration, Global display -->
   <div class="top-controls">
@@ -248,7 +276,7 @@
     <button class="reset-button" onclick="resetAllTimers()">RESET</button>
   </div>
 
-  <!-- Summary -->
+  <!-- Summary (compact) -->
   <div id="summary" class="summary-section">
     <h2>Summary</h2>
 
@@ -292,13 +320,13 @@
       <tbody id="combined-body"></tbody>
     </table>
 
-    <!-- Comments section -->
-    <div style="max-width:800px;margin:12px auto;">
-      <label for="summary-comments" style="font-weight:600;display:block;margin-bottom:6px;">
+    <!-- Comments section (compact) -->
+    <div style="max-width:800px;margin:8px auto;">
+      <label for="summary-comments" style="font-weight:600;display:block;margin-bottom:4px;">
         Comments / Notes:
       </label>
-      <textarea id="summary-comments"
-        style="width:100%;min-height:80px;padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;resize:vertical;"
+      <textarea id="summary-comments" class="summary-comments"
+        style="width:100%;border-radius:8px;border:1px solid #ccc;resize:vertical;"
         placeholder="Type any additional observations or notes here..."></textarea>
     </div>
 
