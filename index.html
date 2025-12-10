@@ -160,6 +160,20 @@
 
     /* Comments box slightly tighter */
     .summary-comments { min-height: 64px; padding: 6px; font-size: 13px; }
+
+    /* BIG GREEN PRINT BUTTON */
+    .print-button-large {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: #fff;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -328,6 +342,11 @@
       <textarea id="summary-comments" class="summary-comments"
         style="width:100%;border-radius:8px;border:1px solid #ccc;resize:vertical;"
         placeholder="Type any additional observations or notes here..."></textarea>
+    </div>
+
+    <!-- BIG PRINT BUTTON BELOW COMMENTS -->
+    <div style="max-width:800px;margin:8px auto;">
+      <button class="print-button-large" onclick="window.print()">Print Summary</button>
     </div>
 
     <div class="footer-note">Change any rating below if needed. If you change it, only the chosen option turns red, and any previously changed row reverts to its auto value.</div>
@@ -559,7 +578,6 @@
       });
 
       container._resetToAuto = setToAuto;
-      container.appendChild(group);
       td.appendChild(container);
       return td;
     }
